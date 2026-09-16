@@ -1075,50 +1075,61 @@ body {
   background: #37474f;
 }
 
+/* Header Action Buttons */
+.header-action-buttons {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+}
+
 /* ============================================================ */
-/* OWNER FREQUENCY / CHANNEL SWITCHER                           */
+/* OWNER FREQUENCY / CHANNEL SWITCHER (RESPONSIVE)              */
 /* ============================================================ */
 .channel-selector-bar {
   display: flex;
-  align-items: center;
-  gap: 8px;
+  flex-direction: column;
+  gap: 5px;
   background: #111a24;
   border: 1px solid #1e293b;
-  border-radius: 8px;
-  padding: 6px 10px;
-  margin-bottom: 8px;
+  border-radius: 10px;
+  padding: 8px 10px;
+  margin-bottom: 4px;
+  width: 100%;
 }
 
 .ch-label {
   font-size: 0.65rem;
   font-weight: 800;
-  letter-spacing: 1px;
+  letter-spacing: 0.5px;
   color: #64748b;
-  white-space: nowrap;
+  text-transform: uppercase;
 }
 
 .ch-toggle-group {
   display: flex;
   gap: 6px;
-  flex: 1;
+  width: 100%;
 }
 
 .btn-ch {
-  flex: 1;
+  flex: 1 1 50%;
+  min-width: 0;
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 5px;
+  gap: 4px;
   background: #1e293b;
   color: #94a3b8;
   border: 1px solid #334155;
   border-radius: 6px;
-  padding: 6px 8px;
+  padding: 8px 4px;
   font-size: 0.68rem;
   font-weight: 700;
   cursor: pointer;
   transition: all 0.2s;
   white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .btn-ch .ch-icon {
