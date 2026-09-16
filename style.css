@@ -1,0 +1,1190 @@
+/* ==========================================================================
+   TACTICAL WALKIE-TALKIE SYSTEM - INDUSTRIAL MOTOROLA / KENWOOD STYLING
+   ========================================================================== */
+
+:root {
+  --bg-deep: #090c10;
+  --bg-chassis: #121820;
+  --bg-card: #18202b;
+  --bg-lcd: #050d0a;
+  
+  --color-lcd-text: #00e676;
+  --color-lcd-dim: #1b5e20;
+  --color-amber: #ffab00;
+  --color-cyan: #00e5ff;
+  --color-red: #ff1744;
+  --color-text-main: #f0f4f8;
+  --color-text-muted: #8899a6;
+  
+  --border-dark: #232e3d;
+  --border-bevel: rgba(255, 255, 255, 0.08);
+}
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+  -webkit-tap-highlight-color: transparent;
+  user-select: none;
+}
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  background-color: var(--bg-deep);
+  color: var(--color-text-main);
+  min-height: 100vh;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 10px;
+  touch-action: manipulation;
+}
+
+/* ==========================================================================
+   SCREEN 1: LOGIN / STATION DISPATCH CARD
+   ========================================================================== */
+.login-wrapper {
+  width: 100%;
+  max-width: 440px;
+  animation: fadeIn 0.3s ease;
+}
+
+.login-card {
+  background: var(--bg-chassis);
+  border: 1px solid var(--border-dark);
+  border-radius: 20px;
+  padding: 24px 20px;
+  box-shadow: 0 15px 40px rgba(0, 0, 0, 0.8), inset 0 1px 0 var(--border-bevel);
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+.login-brand {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.brand-radio-icon {
+  font-size: 2.2rem;
+  background: #182230;
+  border: 1px solid var(--border-dark);
+  padding: 8px 12px;
+  border-radius: 12px;
+}
+
+.brand-title {
+  font-size: 1.25rem;
+  font-weight: 800;
+  letter-spacing: 1px;
+  color: #fff;
+}
+
+.brand-sub {
+  font-size: 0.68rem;
+  font-weight: 600;
+  letter-spacing: 1.5px;
+  color: var(--color-text-muted);
+}
+
+.login-divider {
+  height: 1px;
+  background: var(--border-dark);
+}
+
+.form-section {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.form-label {
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 1px;
+  color: var(--color-text-muted);
+}
+
+/* Role Selector Cards */
+.role-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+
+.role-card {
+  background: #161e29;
+  border: 1.5px solid var(--border-dark);
+  border-radius: 12px;
+  padding: 12px 10px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: 4px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.role-card:active {
+  transform: scale(0.97);
+}
+
+.role-card.active[data-role="owner"] {
+  background: rgba(255, 171, 0, 0.12);
+  border-color: var(--color-amber);
+  box-shadow: 0 0 12px rgba(255, 171, 0, 0.25);
+}
+
+.role-card.active[data-role="staff"] {
+  background: rgba(0, 229, 255, 0.12);
+  border-color: var(--color-cyan);
+  box-shadow: 0 0 12px rgba(0, 229, 255, 0.25);
+}
+
+.role-card-icon {
+  font-size: 1.6rem;
+}
+
+.role-card-title {
+  font-size: 0.88rem;
+  font-weight: 700;
+  color: #fff;
+}
+
+.role-card-sub {
+  font-size: 0.65rem;
+  color: var(--color-text-muted);
+}
+
+/* Slot Selection Pills */
+.slot-pills-row {
+  display: flex;
+  gap: 8px;
+}
+
+.slot-pill {
+  flex: 1;
+  background: #161e29;
+  border: 1px solid var(--border-dark);
+  border-radius: 10px;
+  padding: 10px 6px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.slot-pill:active {
+  transform: scale(0.96);
+}
+
+.slot-num {
+  font-family: monospace;
+  font-size: 0.7rem;
+  color: var(--color-text-muted);
+}
+
+.slot-name {
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: #fff;
+}
+
+.slot-pill.active {
+  background: #1e2c3e;
+  border-color: #2979ff;
+  box-shadow: 0 0 10px rgba(41, 121, 255, 0.35);
+}
+
+/* Form Inputs */
+.input-field {
+  width: 100%;
+  background: #0d1218;
+  border: 1px solid var(--border-dark);
+  border-radius: 10px;
+  color: #fff;
+  padding: 11px 14px;
+  font-size: 0.9rem;
+  outline: none;
+  transition: border-color 0.2s;
+}
+
+.input-field:focus {
+  border-color: var(--color-lcd-text);
+  box-shadow: 0 0 8px rgba(0, 230, 118, 0.25);
+}
+
+.btn-login-submit {
+  background: linear-gradient(135deg, #00e676 0%, #00b0ff 100%);
+  color: #000;
+  font-size: 0.95rem;
+  font-weight: 800;
+  letter-spacing: 0.5px;
+  padding: 14px;
+  border: none;
+  border-radius: 12px;
+  cursor: pointer;
+  margin-top: 6px;
+  box-shadow: 0 4px 15px rgba(0, 230, 118, 0.3);
+  transition: transform 0.15s;
+}
+
+.btn-login-submit:active {
+  transform: scale(0.98);
+}
+
+.login-footer-info {
+  text-align: center;
+  font-size: 0.72rem;
+  color: var(--color-text-muted);
+}
+
+
+/* ==========================================================================
+   SCREEN 2: HARDWARE RADIO CHASSIS
+   ========================================================================== */
+.radio-wrapper {
+  width: 100%;
+  max-width: 440px;
+  animation: fadeIn 0.3s ease;
+}
+
+.hardware-top-knobs {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  padding: 0 16px 4px 16px;
+}
+
+.antenna-mount {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  position: relative;
+  left: 10px;
+}
+
+.antenna-tip {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--color-lcd-text);
+  box-shadow: 0 0 8px var(--color-lcd-text);
+  margin-bottom: 2px;
+  transition: all 0.3s;
+}
+
+.antenna-tip.tx {
+  background: var(--color-red);
+  box-shadow: 0 0 12px var(--color-red);
+}
+
+.antenna-rod {
+  width: 10px;
+  height: 22px;
+  background: linear-gradient(90deg, #37474f 0%, #78909c 50%, #263238 100%);
+  border-radius: 3px 3px 0 0;
+}
+
+.top-brand-strip {
+  font-family: monospace;
+  font-size: 0.7rem;
+  letter-spacing: 1px;
+  color: #607d8b;
+}
+
+.switch-user-btn {
+  font-size: 0.7rem;
+  font-weight: 700;
+  color: var(--color-text-muted);
+  background: #141b24;
+  border: 1px solid var(--border-dark);
+  padding: 4px 8px;
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+.switch-user-btn:active {
+  background: #202b3a;
+}
+
+/* Main Body */
+.chassis-body {
+  background: var(--bg-chassis);
+  border: 2px solid #232d3b;
+  border-radius: 24px;
+  padding: 16px;
+  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.9), inset 0 2px 2px var(--border-bevel);
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+/* Radio Header */
+.radio-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.badge-station {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: #182230;
+  border: 1px solid var(--border-dark);
+  padding: 6px 12px;
+  border-radius: 20px;
+}
+
+.station-text {
+  font-size: 0.82rem;
+  font-weight: 700;
+  color: #fff;
+}
+
+.online-counter {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-family: monospace;
+  font-size: 0.75rem;
+  color: var(--color-text-muted);
+  background: #0f151c;
+  padding: 6px 10px;
+  border-radius: 12px;
+  border: 1px solid var(--border-dark);
+}
+
+.counter-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #455a64;
+  transition: all 0.3s;
+}
+
+.counter-dot.connected {
+  background: var(--color-lcd-text);
+  box-shadow: 0 0 8px var(--color-lcd-text);
+}
+
+/* Roster Bar (5 Slots Indicator) */
+.roster-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: #0d1218;
+  border: 1px solid #1a2330;
+  padding: 6px 12px;
+  border-radius: 10px;
+}
+
+.roster-label {
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 1px;
+  color: #546e7a;
+}
+
+.roster-dots {
+  display: flex;
+  gap: 6px;
+}
+
+.roster-item {
+  width: 28px;
+  height: 20px;
+  border-radius: 4px;
+  background: #182230;
+  border: 1px solid #263238;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  font-family: monospace;
+  font-size: 0.65rem;
+  font-weight: 700;
+  color: #546e7a;
+  transition: all 0.3s;
+}
+
+.roster-item.online {
+  background: rgba(0, 230, 118, 0.2);
+  border-color: var(--color-lcd-text);
+  color: var(--color-lcd-text);
+  box-shadow: 0 0 6px rgba(0, 230, 118, 0.3);
+}
+
+.roster-item.talking {
+  background: rgba(255, 23, 68, 0.3);
+  border-color: var(--color-red);
+  color: #fff;
+  box-shadow: 0 0 10px var(--color-red);
+  animation: pulse-red 0.6s infinite alternate;
+}
+
+/* Master Shift Control Bar */
+.master-shift-bar {
+  background: linear-gradient(135deg, #1b2532 0%, #111720 100%);
+  border: 1.5px solid var(--border-dark);
+  border-radius: 14px;
+  padding: 12px 14px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.shift-details {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.shift-state-indicator {
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: #455a64;
+  transition: all 0.3s;
+}
+
+.shift-state-indicator.active {
+  background: var(--color-lcd-text);
+  box-shadow: 0 0 12px var(--color-lcd-text);
+}
+
+.shift-state-title {
+  font-size: 0.95rem;
+  font-weight: 800;
+  letter-spacing: 0.5px;
+  color: #fff;
+}
+
+.shift-state-sub {
+  font-size: 0.72rem;
+  color: var(--color-text-muted);
+}
+
+.btn-master-shift {
+  border: none;
+  font-size: 0.85rem;
+  font-weight: 800;
+  letter-spacing: 0.5px;
+  padding: 10px 16px;
+  border-radius: 10px;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.btn-master-shift.start {
+  background: var(--color-lcd-text);
+  color: #000;
+  box-shadow: 0 3px 12px rgba(0, 230, 118, 0.35);
+}
+
+.btn-master-shift.start:active {
+  transform: scale(0.96);
+}
+
+.btn-master-shift.stop {
+  background: #2a3442;
+  color: #ff5252;
+  border: 1px solid #ff5252;
+  box-shadow: 0 2px 8px rgba(255, 82, 82, 0.2);
+}
+
+.staff-shift-status {
+  font-size: 0.75rem;
+  font-weight: 800;
+  letter-spacing: 1px;
+  padding: 8px 14px;
+  border-radius: 8px;
+}
+
+.staff-shift-status.active {
+  background: rgba(0, 230, 118, 0.15);
+  color: var(--color-lcd-text);
+  border: 1px solid var(--color-lcd-text);
+}
+
+.staff-shift-status.off {
+  background: rgba(255, 23, 68, 0.15);
+  color: #ff5252;
+  border: 1px solid #ff5252;
+}
+
+/* Backlit Tactical LCD Screen */
+.tactical-lcd {
+  background: var(--bg-lcd);
+  border: 2px solid #1a2620;
+  border-radius: 14px;
+  padding: 14px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  box-shadow: inset 0 2px 10px rgba(0, 0, 0, 0.9), 0 0 15px rgba(0, 230, 118, 0.05);
+  position: relative;
+  overflow: hidden;
+}
+
+.lcd-header {
+  display: flex;
+  justify-content: space-between;
+  font-family: monospace;
+  font-size: 0.72rem;
+  letter-spacing: 1px;
+  color: #00a152;
+  border-bottom: 1px solid #0f2b1c;
+  padding-bottom: 4px;
+}
+
+.lcd-speaker-box {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.speaker-state-ring {
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  border: 2px solid #0f2b1c;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  transition: all 0.3s;
+}
+
+.speaker-pulse {
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: #0f2b1c;
+  transition: all 0.3s;
+}
+
+.speaker-state-ring.rx {
+  border-color: var(--color-lcd-text);
+  box-shadow: 0 0 15px var(--color-lcd-text);
+}
+
+.speaker-state-ring.rx .speaker-pulse {
+  background: var(--color-lcd-text);
+  animation: pulse-scale 0.5s infinite alternate;
+}
+
+.speaker-state-ring.tx {
+  border-color: var(--color-red);
+  box-shadow: 0 0 15px var(--color-red);
+}
+
+.speaker-state-ring.tx .speaker-pulse {
+  background: var(--color-red);
+  animation: pulse-scale 0.5s infinite alternate;
+}
+
+.speaker-text-wrap {
+  flex: 1;
+}
+
+.speaker-title {
+  font-size: 1.15rem;
+  font-weight: 800;
+  letter-spacing: 0.5px;
+  color: #fff;
+  min-height: 24px;
+}
+
+.speaker-sub {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: #00e676;
+}
+
+/* LCD VU Meter */
+.lcd-vu-meter {
+  display: flex;
+  gap: 4px;
+  height: 22px;
+  align-items: flex-end;
+}
+
+.vu-cell {
+  flex: 1;
+  background: #0c1f14;
+  border-radius: 2px;
+  height: 4px;
+  transition: height 0.08s ease;
+}
+
+/* Heavy-Duty PTT Button */
+.ptt-assembly {
+  display: flex;
+  justify-content: center;
+  padding: 8px 0;
+}
+
+.hardware-ptt-btn {
+  width: 215px;
+  height: 215px;
+  border-radius: 50%;
+  border: none;
+  background: radial-gradient(circle at 35% 35%, #2d3848 0%, #131922 100%);
+  box-shadow: 
+    0 14px 30px rgba(0, 0, 0, 0.8),
+    inset 0 2px 4px rgba(255, 255, 255, 0.18),
+    inset 0 -5px 10px rgba(0, 0, 0, 0.9),
+    0 0 0 6px #1a232e;
+  cursor: pointer;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  outline: none;
+  transition: all 0.12s ease;
+}
+
+.hardware-ptt-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+  filter: grayscale(0.9);
+}
+
+.hardware-ptt-btn:active:not(:disabled),
+.hardware-ptt-btn.transmitting {
+  transform: scale(0.95);
+  background: radial-gradient(circle at 45% 45%, #e53935 0%, #8e0000 100%);
+  box-shadow: 
+    0 4px 15px rgba(229, 57, 53, 0.6),
+    inset 0 4px 12px rgba(0, 0, 0, 0.9),
+    0 0 0 6px #ff1744;
+}
+
+.ptt-knurled-ring {
+  width: 185px;
+  height: 185px;
+  border-radius: 50%;
+  border: 2px dashed rgba(255, 255, 255, 0.12);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.ptt-center-face {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  gap: 4px;
+}
+
+.ptt-icon {
+  font-size: 2.6rem;
+  filter: drop-shadow(0 2px 6px rgba(0, 0, 0, 0.6));
+}
+
+.ptt-primary-text {
+  font-size: 1rem;
+  font-weight: 800;
+  letter-spacing: 0.5px;
+  color: #fff;
+}
+
+.ptt-secondary-text {
+  font-size: 0.65rem;
+  font-weight: 700;
+  letter-spacing: 1px;
+  color: var(--color-text-muted);
+}
+
+/* Utility Bottom Tools */
+.radio-bottom-tools {
+  display: flex;
+  gap: 10px;
+}
+
+.tool-btn {
+  flex: 1;
+  background: #17212d;
+  border: 1px solid var(--border-dark);
+  border-radius: 10px;
+  padding: 10px 8px;
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  font-size: 0.8rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.tool-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.tool-btn:active:not(:disabled) {
+  transform: scale(0.97);
+}
+
+.tool-btn.active {
+  background: #c62828;
+  border-color: #ff5252;
+  box-shadow: 0 0 10px rgba(255, 82, 82, 0.4);
+}
+
+/* Volume Slider */
+.volume-strip {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: #0d1218;
+  border: 1px solid var(--border-dark);
+  padding: 8px 14px;
+  border-radius: 10px;
+}
+
+.vol-label {
+  font-family: monospace;
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: #546e7a;
+}
+
+.hw-slider {
+  flex: 1;
+  accent-color: var(--color-lcd-text);
+  cursor: pointer;
+}
+
+.vol-val {
+  font-family: monospace;
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: #fff;
+  min-width: 38px;
+  text-align: right;
+}
+
+/* Footer Note */
+.hw-footer-note {
+  font-size: 0.73rem;
+  color: #78909c;
+  line-height: 1.4;
+  background: #0d131a;
+  padding: 8px 12px;
+  border-radius: 8px;
+  border-left: 3px solid #00b0ff;
+}
+
+.btn-install-app {
+  width: 100%;
+  background: #182838;
+  color: #fff;
+  border: 1px solid #2979ff;
+  border-radius: 10px;
+  padding: 10px;
+  font-size: 0.82rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+/* Keyframes */
+@keyframes pulse-red {
+  from { opacity: 0.7; transform: scale(0.95); }
+  to { opacity: 1; transform: scale(1.05); }
+}
+
+@keyframes pulse-scale {
+  from { transform: scale(0.85); opacity: 0.6; }
+  to { transform: scale(1.15); opacity: 1; }
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(6px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* Owner Settings Top Button */
+.top-action-buttons {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.btn-owner-settings {
+  font-size: 0.7rem;
+  font-weight: 700;
+  color: #ffab00;
+  background: rgba(255, 171, 0, 0.12);
+  border: 1px solid rgba(255, 171, 0, 0.4);
+  padding: 4px 10px;
+  border-radius: 6px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  transition: all 0.2s;
+}
+
+.btn-owner-settings:hover, .btn-owner-settings:active {
+  background: rgba(255, 171, 0, 0.25);
+  box-shadow: 0 0 10px rgba(255, 171, 0, 0.3);
+}
+
+/* Settings Modal Dialog */
+.settings-modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.85);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
+  padding: 16px;
+}
+
+.settings-modal-card {
+  width: 100%;
+  max-width: 440px;
+  max-height: 90vh;
+  overflow-y: auto;
+  background: #121820;
+  border: 2px solid #29384d;
+  border-radius: 20px;
+  padding: 20px;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.8), 0 0 30px rgba(255, 171, 0, 0.15);
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  animation: modalPop 0.25s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+@keyframes modalPop {
+  from { opacity: 0; transform: scale(0.92); }
+  to { opacity: 1; transform: scale(1); }
+}
+
+.settings-modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-bottom: 1px solid #1f2937;
+  padding-bottom: 12px;
+}
+
+.settings-modal-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 1rem;
+  font-weight: 800;
+  letter-spacing: 0.5px;
+  color: #ffab00;
+}
+
+.settings-title-icon {
+  font-size: 1.2rem;
+}
+
+.settings-close-btn {
+  background: transparent;
+  border: none;
+  color: #90a4ae;
+  font-size: 1.2rem;
+  font-weight: bold;
+  cursor: pointer;
+  padding: 4px 8px;
+  border-radius: 6px;
+}
+
+.settings-close-btn:active {
+  color: #fff;
+  background: #1e293b;
+}
+
+/* Sections */
+.settings-section {
+  background: #16202c;
+  border: 1px solid #233142;
+  border-radius: 12px;
+  padding: 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.settings-section-header {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: #eceff1;
+  font-size: 0.82rem;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+}
+
+.sec-desc {
+  font-size: 0.72rem;
+  color: #78909c;
+  margin: 0;
+}
+
+/* Staff Manager List */
+.staff-manager-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  max-height: 180px;
+  overflow-y: auto;
+}
+
+.staff-manager-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: #0f161f;
+  border: 1px solid #202c3d;
+  padding: 8px 12px;
+  border-radius: 8px;
+}
+
+.staff-item-info {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.staff-badge-tag {
+  font-family: monospace;
+  font-size: 0.7rem;
+  font-weight: bold;
+  background: rgba(0, 229, 255, 0.15);
+  color: #00e5ff;
+  padding: 2px 6px;
+  border-radius: 4px;
+}
+
+.staff-item-name {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: #fff;
+}
+
+.staff-item-status {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #455a64;
+}
+
+.staff-item-status.online {
+  background: #00e676;
+  box-shadow: 0 0 8px #00e676;
+}
+
+.btn-remove-staff {
+  background: rgba(255, 23, 68, 0.15);
+  border: 1px solid rgba(255, 23, 68, 0.3);
+  color: #ff1744;
+  padding: 4px 8px;
+  border-radius: 6px;
+  font-size: 0.72rem;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.btn-remove-staff:hover, .btn-remove-staff:active {
+  background: rgba(255, 23, 68, 0.35);
+}
+
+/* Add Staff Form */
+.add-staff-form, .change-pin-form {
+  display: flex;
+  gap: 8px;
+  margin-top: 4px;
+}
+
+.add-staff-form .input-field, .change-pin-form .input-field {
+  flex: 1;
+  padding: 8px 12px;
+  font-size: 0.85rem;
+}
+
+.btn-add-staff {
+  background: #00b0ff;
+  color: #fff;
+  border: none;
+  border-radius: 8px;
+  padding: 0 14px;
+  font-size: 0.78rem;
+  font-weight: 700;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.btn-add-staff:active {
+  background: #0091ea;
+}
+
+.btn-change-pin {
+  background: #ffab00;
+  color: #000;
+  border: none;
+  border-radius: 8px;
+  padding: 0 14px;
+  font-size: 0.78rem;
+  font-weight: 700;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.btn-change-pin:active {
+  background: #ffd54f;
+}
+
+.settings-footer {
+  display: flex;
+  justify-content: flex-end;
+}
+
+.btn-settings-done {
+  width: 100%;
+  background: #263238;
+  color: #eceff1;
+  border: 1px solid #37474f;
+  border-radius: 10px;
+  padding: 10px;
+  font-weight: bold;
+  font-size: 0.88rem;
+  cursor: pointer;
+}
+
+.btn-settings-done:active {
+  background: #37474f;
+}
+
+/* ============================================================ */
+/* OWNER FREQUENCY / CHANNEL SWITCHER                           */
+/* ============================================================ */
+.channel-selector-bar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: #111a24;
+  border: 1px solid #1e293b;
+  border-radius: 8px;
+  padding: 6px 10px;
+  margin-bottom: 8px;
+}
+
+.ch-label {
+  font-size: 0.65rem;
+  font-weight: 800;
+  letter-spacing: 1px;
+  color: #64748b;
+  white-space: nowrap;
+}
+
+.ch-toggle-group {
+  display: flex;
+  gap: 6px;
+  flex: 1;
+}
+
+.btn-ch {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  background: #1e293b;
+  color: #94a3b8;
+  border: 1px solid #334155;
+  border-radius: 6px;
+  padding: 6px 8px;
+  font-size: 0.68rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.2s;
+  white-space: nowrap;
+}
+
+.btn-ch .ch-icon {
+  font-size: 0.8rem;
+}
+
+.btn-ch.active#btnChAll {
+  background: rgba(0, 230, 118, 0.15);
+  color: #00e676;
+  border-color: #00e676;
+  box-shadow: 0 0 8px rgba(0, 230, 118, 0.25);
+}
+
+.btn-ch.active#btnChOwners {
+  background: rgba(255, 171, 0, 0.2);
+  color: #ffab00;
+  border-color: #ffab00;
+  box-shadow: 0 0 10px rgba(255, 171, 0, 0.35);
+}
+
+/* Tactical LCD Private Mode (Amber / Gold Theme) */
+.tactical-lcd.channel-private {
+  border-color: #ffab00;
+  background: radial-gradient(circle at center, #241a00 0%, #0d0900 100%);
+  box-shadow: inset 0 0 25px rgba(255, 171, 0, 0.25), 0 0 15px rgba(255, 171, 0, 0.15);
+}
+
+.tactical-lcd.channel-private .lcd-header {
+  border-color: rgba(255, 171, 0, 0.3);
+}
+
+.tactical-lcd.channel-private .lcd-channel {
+  color: #ffab00;
+  text-shadow: 0 0 6px rgba(255, 171, 0, 0.6);
+}
+
+.tactical-lcd.channel-private .speaker-state-ring {
+  border-color: #ffab00;
+}
+
+.tactical-lcd.channel-private .speaker-state-ring.rx {
+  border-color: #ffd54f;
+  box-shadow: 0 0 15px #ffd54f;
+}
+
+.tactical-lcd.channel-private .speaker-state-ring.rx .speaker-pulse {
+  background: #ffd54f;
+}
+
+.tactical-lcd.channel-private .speaker-sub {
+  color: #ffd54f;
+}
+
+.tactical-lcd.channel-private .vu-cell.lit {
+  background: #ffab00;
+  box-shadow: 0 0 6px #ffab00;
+}
+
+/* PTT Button Private Mode Accent */
+.hardware-ptt-btn.channel-private .ptt-center-face {
+  border-color: #ffab00;
+  box-shadow: inset 0 0 15px rgba(255, 171, 0, 0.3);
+}
+
+.hardware-ptt-btn.channel-private:active .ptt-center-face,
+.hardware-ptt-btn.channel-private.transmitting .ptt-center-face {
+  background: radial-gradient(circle, #ff6d00 0%, #ff3d00 100%);
+  box-shadow: 0 0 25px rgba(255, 109, 0, 0.8);
+}

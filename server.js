@@ -126,6 +126,7 @@ function setupWebSocketServer(wss) {
       slot: null,
       role: 'unknown',
       name: 'Connecting...',
+      channel: 'all', // 'all' (Broadcast) or 'owners' (Private Owner Channel)
       isTalking: false
     };
     clients.set(ws, clientData);
@@ -144,11 +145,19 @@ function setupWebSocketServer(wss) {
 
     ws.on('message', (data, isBinary) => {
       if (isBinary) {
-        // High-speed binary voice broadcast to all OTHER clients ONLY IF shift is active
+        // High-speed binary voice broadcast ONLY IF shift is active
         if (!globalShiftActive) return;
-        for (const [clientWs] of clients) {
+        const isPrivate = clientData.role === 'owner' && clientData.channel === 'owners';
+        for (const [clientWs, targetData] of clients) {
           if (clientWs !== ws && clientWs.readyState === 1) { // 1 = OPEN
-            clientWs.send(data, { binary: true });
+            if (isPrivate) {
+              // Strictly Owners only in private channel
+              if (targetData.role === 'owner') {
+                clientWs.send(data, { binary: true });
+              }
+            } else {
+              clientWs.send(data, { binary: true });
+            }
           }
         }
       } else {
@@ -228,21 +237,55 @@ function setupWebSocketServer(wss) {
                 clientWs.send(shiftMsg);
               }
             }
+          } else if (msg.type === 'set_channel') {
+            // Only Owners can switch to 'owners' private channel
+            if (clientData.role === 'owner') {
+              clientData.channel = (msg.channel === 'owners') ? 'owners' : 'all';
+              console.log(`[Channel] Owner ${clientData.name} switched channel to: ${clientData.channel}`);
+              ws.send(JSON.stringify({
+                type: 'channel_confirmed',
+                channel: clientData.channel
+              }));
+            }
           } else if (msg.type === 'talk_start') {
             if (!globalShiftActive) return;
             clientData.isTalking = true;
-            broadcastToOthers(ws, {
+            const isPrivate = clientData.role === 'owner' && clientData.channel === 'owners';
+            const payload = {
               type: 'talk_start',
               senderName: clientData.name,
               senderRole: clientData.role,
-              senderSlot: clientData.slot
-            });
+              senderSlot: clientData.slot,
+              channel: clientData.channel || 'all'
+            };
+            if (isPrivate) {
+              // Send talk_start ONLY to other Owners
+              for (const [clientWs, targetData] of clients) {
+                if (clientWs !== ws && clientWs.readyState === 1 && targetData.role === 'owner') {
+                  clientWs.send(JSON.stringify(payload));
+                }
+              }
+            } else {
+              broadcastToOthers(ws, payload);
+            }
           } else if (msg.type === 'talk_stop') {
             clientData.isTalking = false;
-            broadcastToOthers(ws, {
+            const isPrivate = clientData.role === 'owner' && clientData.channel === 'owners';
+            const payload = {
               type: 'talk_stop',
-              senderName: clientData.name
-            });
+              senderName: clientData.name,
+              channel: clientData.channel || 'all'
+            };
+            if (isPrivate) {
+              // Send talk_stop ONLY to other Owners
+              for (const [clientWs, targetData] of clients) {
+                if (clientWs !== ws && clientWs.readyState === 1 && targetData.role === 'owner') {
+                  clientWs.send(JSON.stringify(payload));
+                }
+              }
+            } else {
+              broadcastToOthers(ws, payload);
+            }
           } else if (msg.type === 'add_staff_slot') {
             // Strictly Owner-only
             if (clientData.role !== 'owner') {
