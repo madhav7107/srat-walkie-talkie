@@ -1,0 +1,333 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <meta name="theme-color" content="#10141b">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <title>SRAT - WALKIE TALKIE | Tactical Intercom</title>
+  
+  <link rel="manifest" href="manifest.json">
+  <link rel="icon" type="image/png" href="icon-192.png">
+  <link rel="apple-touch-icon" href="icon-192.png">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+  <!-- ============================================================ -->
+  <!-- SCREEN 1: PROFESSIONAL LOGIN / ACCESS GATE                   -->
+  <!-- ============================================================ -->
+  <div class="login-wrapper" id="loginScreen">
+    <div class="login-card">
+      <div class="login-brand">
+        <div class="brand-radio-icon">📻</div>
+        <div class="brand-headings">
+          <h1 class="brand-title">SRAT - WALKIE TALKIE</h1>
+          <p class="brand-sub">TACTICAL REAL-TIME RADIO SYSTEM</p>
+        </div>
+      </div>
+
+      <div class="login-divider"></div>
+
+      <!-- Step 1: Role Selector -->
+      <div class="form-section">
+        <label class="form-label">1. SELECT YOUR ROLE</label>
+        <div class="role-grid">
+          <button type="button" class="role-card active" data-role="owner" id="roleBtnOwner">
+            <span class="role-card-icon">👑</span>
+            <span class="role-card-title">OWNER</span>
+            <span class="role-card-sub">Office Master (Shift Control)</span>
+          </button>
+          <button type="button" class="role-card" data-role="staff" id="roleBtnStaff">
+            <span class="role-card-icon">📦</span>
+            <span class="role-card-title">GODOWN STAFF</span>
+            <span class="role-card-sub">Warehouse Station</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- Step 2: Slot Selection -->
+      <div class="form-section">
+        <label class="form-label" id="slotLabel">2. CHOOSE STATION SLOT</label>
+        
+        <!-- Owner Slots (3) -->
+        <div class="slot-pills-row" id="ownerSlotsRow">
+          <button type="button" class="slot-pill active" data-slot="owner_1">
+            <span class="slot-num">01</span>
+            <span class="slot-name">Owner 1</span>
+          </button>
+          <button type="button" class="slot-pill" data-slot="owner_2">
+            <span class="slot-num">02</span>
+            <span class="slot-name">Owner 2</span>
+          </button>
+          <button type="button" class="slot-pill" data-slot="owner_3">
+            <span class="slot-num">03</span>
+            <span class="slot-name">Owner 3</span>
+          </button>
+        </div>
+
+        <!-- Staff Slots (2) -->
+        <div class="slot-pills-row" id="staffSlotsRow" style="display: none;">
+          <button type="button" class="slot-pill active" data-slot="staff_1">
+            <span class="slot-num">01</span>
+            <span class="slot-name">Godown Staff 1</span>
+          </button>
+          <button type="button" class="slot-pill" data-slot="staff_2">
+            <span class="slot-num">02</span>
+            <span class="slot-name">Godown Staff 2</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- Step 3: Identity & Security -->
+      <div class="form-section">
+        <label class="form-label">3. YOUR NAME / CALLSIGN</label>
+        <input type="text" id="loginNameInput" class="input-field" placeholder="Enter your name (e.g. Ramesh / Boss)" maxlength="20">
+      </div>
+
+      <!-- Owner PIN (Only for Owner slots) -->
+      <div class="form-section" id="ownerPinSection">
+        <label class="form-label">OWNER SECURITY PIN</label>
+        <input type="password" id="loginPinInput" class="input-field" placeholder="Enter Secret Owner PIN" maxlength="8" autocomplete="off">
+      </div>
+
+      <button type="button" class="btn-login-submit" id="btnEnterRadio">
+        ENTER RADIO CHANNEL ➔
+      </button>
+
+      <div class="login-footer-info">
+        🔒 Authorized Personnel Only: Owners & Godown Staff
+      </div>
+    </div>
+  </div>
+
+
+  <!-- ============================================================ -->
+  <!-- SCREEN 2: PROFESSIONAL HARDWARE WALKIE-TALKIE CHASSIS        -->
+  <!-- ============================================================ -->
+  <div class="radio-wrapper" id="radioScreen" style="display: none;">
+    
+    <!-- Top Radio Hardware Bevel (Antenna & Volume Cap) -->
+    <div class="hardware-top-knobs">
+      <div class="antenna-mount">
+        <div class="antenna-rod"></div>
+        <div class="antenna-tip" id="antennaLed"></div>
+      </div>
+      <div class="top-brand-strip">
+        <span class="model-badge">SRAT - WALKIE TALKIE</span>
+      </div>
+      <div class="top-action-buttons">
+        <button type="button" class="btn-owner-settings" id="btnOwnerSettings" style="display: none;" title="Owner Settings (Manage Staff & PIN)">
+          ⚙️ SETTINGS
+        </button>
+        <button type="button" class="switch-user-btn" id="btnLogout" title="Switch Account / Logout">
+          🚪 LOGOUT
+        </button>
+      </div>
+    </div>
+
+    <!-- Main Chassis Container -->
+    <div class="chassis-body">
+      
+      <!-- Top Status Header -->
+      <div class="radio-header">
+        <div class="badge-station" id="stationBadge">
+          <span class="station-icon" id="badgeIcon">👑</span>
+          <span class="station-text" id="badgeText">OWNER 1 (Boss)</span>
+        </div>
+        <div class="online-counter" id="onlineCounterBadge">
+          <span class="counter-dot" id="networkLed"></span>
+          <span id="counterText">1 / 5 ONLINE</span>
+        </div>
+      </div>
+
+      <!-- Online Active Slots Indicator (5 LEDs) -->
+      <div class="roster-bar">
+        <span class="roster-label">STATIONS:</span>
+        <div class="roster-dots">
+          <div class="roster-item" id="roster_owner_1" title="Owner 1"><span>O1</span></div>
+          <div class="roster-item" id="roster_owner_2" title="Owner 2"><span>O2</span></div>
+          <div class="roster-item" id="roster_owner_3" title="Owner 3"><span>O3</span></div>
+          <div class="roster-item" id="roster_staff_1" title="Staff 1"><span>S1</span></div>
+          <div class="roster-item" id="roster_staff_2" title="Staff 2"><span>S2</span></div>
+        </div>
+      </div>
+
+      <!-- Master Shift Control Bar -->
+      <div class="master-shift-bar" id="masterShiftBar">
+        <div class="shift-details">
+          <div class="shift-state-indicator" id="shiftStateLed"></div>
+          <div class="shift-state-text">
+            <div class="shift-state-title" id="shiftTitle">SHIFT STOPPED</div>
+            <div class="shift-state-sub" id="shiftSub">Waiting for Owner to start...</div>
+          </div>
+        </div>
+        
+        <!-- Shift Button: OWNER gets toggle button; STAFF gets read-only status -->
+        <div class="shift-action-slot">
+          <button type="button" class="btn-master-shift start" id="btnMasterShift">
+            START SHIFT
+          </button>
+          <div class="staff-shift-status off" id="staffShiftStatus" style="display: none;">
+            LOCKED
+          </div>
+        </div>
+      </div>
+
+      <!-- Owner Frequency / Channel Switcher (Only visible to Owners) -->
+      <div class="channel-selector-bar" id="ownerChannelBar" style="display: none;">
+        <span class="ch-label">CHANNEL:</span>
+        <div class="ch-toggle-group">
+          <button type="button" class="btn-ch active" id="btnChAll" data-channel="all" title="Broadcast to all Owners and Godown Staff">
+            <span class="ch-icon">📢</span> CH-1: ALL STATIONS
+          </button>
+          <button type="button" class="btn-ch" id="btnChOwners" data-channel="owners" title="Private voice channel strictly between Owners">
+            <span class="ch-icon">🔒</span> CH-2: OWNERS PRIVATE
+          </button>
+        </div>
+      </div>
+
+      <!-- Backlit Tactical LCD Screen -->
+      <div class="tactical-lcd" id="tacticalLcd">
+        <div class="lcd-header">
+          <span class="lcd-channel" id="lcdChannelLabel">CH-01 [WAREHOUSE + OFFICE]</span>
+          <span class="lcd-freq" id="lcdFreq">16.0 kHz OPUS</span>
+        </div>
+
+        <!-- Central Active Speaker Banner -->
+        <div class="lcd-speaker-box">
+          <div class="speaker-state-ring" id="speakerRing">
+            <div class="speaker-pulse"></div>
+          </div>
+          <div class="speaker-text-wrap">
+            <div class="speaker-title" id="lcdSpeakerName">NOBODY SPEAKING</div>
+            <div class="speaker-sub" id="lcdSpeakerRole">STANDBY (Channel Open)</div>
+          </div>
+        </div>
+
+        <!-- Real-time VU Sound Visualizer -->
+        <div class="lcd-vu-meter" id="lcdVuMeter">
+          <div class="vu-cell"></div>
+          <div class="vu-cell"></div>
+          <div class="vu-cell"></div>
+          <div class="vu-cell"></div>
+          <div class="vu-cell"></div>
+          <div class="vu-cell"></div>
+          <div class="vu-cell"></div>
+          <div class="vu-cell"></div>
+          <div class="vu-cell"></div>
+          <div class="vu-cell"></div>
+          <div class="vu-cell"></div>
+          <div class="vu-cell"></div>
+          <div class="vu-cell"></div>
+          <div class="vu-cell"></div>
+        </div>
+      </div>
+
+      <!-- Heavy-Duty Push-To-Talk Section -->
+      <div class="ptt-assembly">
+        <button type="button" class="hardware-ptt-btn" id="pttButton" disabled>
+          <div class="ptt-knurled-ring">
+            <div class="ptt-center-face">
+              <span class="ptt-icon">🎙️</span>
+              <span class="ptt-primary-text" id="pttStatusText">HOLD TO TALK</span>
+              <span class="ptt-secondary-text">PUSH TO TRANSMIT</span>
+            </div>
+          </div>
+        </button>
+      </div>
+
+      <!-- Tactical Utility Buttons -->
+      <div class="radio-bottom-tools">
+        <!-- Lock Mic / Hands Free -->
+        <button type="button" class="tool-btn" id="btnLockMic" title="Hands-free mic lock" disabled>
+          <span class="tool-icon">🔒</span>
+          <span class="tool-label" id="lockMicLabel">HANDS-FREE (OFF)</span>
+        </button>
+
+        <!-- Speaker Mute Toggle -->
+        <button type="button" class="tool-btn" id="btnMuteSpeaker" title="Mute speaker">
+          <span class="tool-icon" id="muteIcon">🔊</span>
+          <span class="tool-label" id="muteLabel">SPEAKER ON</span>
+        </button>
+      </div>
+
+      <!-- Volume Fader -->
+      <div class="volume-strip">
+        <span class="vol-label">VOL</span>
+        <input type="range" id="volumeSlider" min="0" max="100" value="100" class="hw-slider">
+        <span class="vol-val" id="volValText">100%</span>
+      </div>
+
+      <!-- Mobile Background Guide -->
+      <div class="hw-footer-note">
+        💡 <b>Background Audio:</b> Screen locked or app in pocket? Radio stays live. Pull down the phone notification shade to toggle Mute/Unmute anytime.
+      </div>
+
+      <button type="button" class="btn-install-app" id="btnInstallPwa" style="display: none;">
+        📲 Install SRAT - WALKIE TALKIE App
+      </button>
+
+    </div>
+  </div>
+
+  <!-- Background Keep-Alive Audio Element for Mobile MediaSession API -->
+  <audio id="bgKeepAliveAudio" loop preload="auto" playsinline style="display: none;"></audio>
+
+  <!-- Tactical Owner Settings Modal (Owner Only) -->
+  <div class="settings-modal-overlay" id="settingsModal" style="display: none;">
+    <div class="settings-modal-card">
+      <div class="settings-modal-header">
+        <div class="settings-modal-title">
+          <span class="settings-title-icon">⚙️</span>
+          <span>OWNER SYSTEM SETTINGS</span>
+        </div>
+        <button type="button" class="settings-close-btn" id="btnCloseSettings">✕</button>
+      </div>
+
+      <!-- Section 1: Staff Stations Management -->
+      <div class="settings-section">
+        <div class="settings-section-header">
+          <span class="sec-icon">📦</span>
+          <span class="sec-title">GODOWN STAFF STATIONS</span>
+        </div>
+        <p class="sec-desc">Add or remove warehouse staff stations in real time.</p>
+        
+        <div class="staff-manager-list" id="settingsStaffList">
+          <!-- Dynamically populated staff slots with status & delete button -->
+        </div>
+
+        <div class="add-staff-form">
+          <input type="text" id="newStaffNameInput" class="input-field" placeholder="Staff Name (e.g. Mukesh / Worker)" maxlength="20">
+          <button type="button" class="btn-add-staff" id="btnAddStaff">
+            ➕ ADD STAFF
+          </button>
+        </div>
+      </div>
+
+      <!-- Section 2: Owner Security PIN -->
+      <div class="settings-section">
+        <div class="settings-section-header">
+          <span class="sec-icon">🔒</span>
+          <span class="sec-title">CHANGE OWNER SECURITY PIN</span>
+        </div>
+        <p class="sec-desc">Update secret PIN for Owner access (Default: 1234).</p>
+        
+        <div class="change-pin-form">
+          <input type="password" id="newOwnerPinInput" class="input-field" placeholder="Enter New 4-8 Digit PIN" maxlength="8" autocomplete="off">
+          <button type="button" class="btn-change-pin" id="btnSaveNewPin">
+            🔑 UPDATE PIN
+          </button>
+        </div>
+      </div>
+
+      <div class="settings-footer">
+        <button type="button" class="btn-settings-done" id="btnDoneSettings">✔ DONE</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>
