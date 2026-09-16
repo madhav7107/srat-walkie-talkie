@@ -1,4 +1,4 @@
-const CACHE_NAME = 'godown-walkie-v3';
+const CACHE_NAME = 'godown-walkie-v4';
 const ASSETS_TO_CACHE = [
   './',
   './index.html',
@@ -33,10 +33,17 @@ self.addEventListener('fetch', (event) => {
   if (event.request.method !== 'GET' || event.request.url.startsWith('ws') || event.request.url.includes('/api/')) {
     return;
   }
+  // Network-first: always fetch latest from server so updates apply immediately
   event.respondWith(
-    caches.match(event.request).then((cachedResponse) => {
-      return cachedResponse || fetch(event.request).catch(() => cachedResponse);
-    })
+    fetch(event.request)
+      .then((networkResponse) => {
+        if (networkResponse && networkResponse.status === 200 && networkResponse.type === 'basic') {
+          const responseClone = networkResponse.clone();
+          caches.open(CACHE_NAME).then((cache) => cache.put(event.request, responseClone));
+        }
+        return networkResponse;
+      })
+      .catch(() => caches.match(event.request))
   );
 });
 
