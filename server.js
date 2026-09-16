@@ -38,7 +38,14 @@ const PORT = process.env.PORT || 3000;
 const HTTP_PORT = PORT;
 const HTTPS_PORT = 3443;
 
-// Serve static assets from public folder
+// Serve static assets (support both root directory and public folder)
+app.get('/', (req, res) => {
+  if (fs.existsSync(path.join(__dirname, 'index.html'))) {
+    return res.sendFile(path.join(__dirname, 'index.html'));
+  }
+  res.sendFile(path.join(__dirname, 'public', 'index.html'));
+});
+app.use(express.static(__dirname));
 app.use(express.static(path.join(__dirname, 'public')));
 
 async function getSslOptions() {
