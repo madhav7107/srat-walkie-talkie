@@ -97,7 +97,7 @@
       </button>
 
       <div class="login-footer-info">
-        🔒 Authorized Personnel Only: Max 3 Owners & 2 Godown Staff
+        🔒 Authorized Personnel Only: Owners & Godown Staff
       </div>
     </div>
   </div>
@@ -117,8 +117,13 @@
       <div class="top-brand-strip">
         <span class="model-badge">SRAT - WALKIE TALKIE</span>
       </div>
-      <div class="switch-user-btn" id="btnLogout" title="Switch Account / Logout">
-        ⚙️ SWITCH USER
+      <div class="top-action-buttons">
+        <button type="button" class="btn-owner-settings" id="btnOwnerSettings" style="display: none;" title="Owner Settings (Manage Staff & PIN)">
+          ⚙️ SETTINGS
+        </button>
+        <button type="button" class="switch-user-btn" id="btnLogout" title="Switch Account / Logout">
+          🚪 LOGOUT
+        </button>
       </div>
     </div>
 
@@ -256,6 +261,59 @@
 
   <!-- Background Keep-Alive Audio Element for Mobile MediaSession API -->
   <audio id="bgKeepAliveAudio" loop preload="auto" playsinline style="display: none;"></audio>
+
+  <!-- Tactical Owner Settings Modal (Owner Only) -->
+  <div class="settings-modal-overlay" id="settingsModal" style="display: none;">
+    <div class="settings-modal-card">
+      <div class="settings-modal-header">
+        <div class="settings-modal-title">
+          <span class="settings-title-icon">⚙️</span>
+          <span>OWNER SYSTEM SETTINGS</span>
+        </div>
+        <button type="button" class="settings-close-btn" id="btnCloseSettings">✕</button>
+      </div>
+
+      <!-- Section 1: Staff Stations Management -->
+      <div class="settings-section">
+        <div class="settings-section-header">
+          <span class="sec-icon">📦</span>
+          <span class="sec-title">GODOWN STAFF STATIONS</span>
+        </div>
+        <p class="sec-desc">Add or remove warehouse staff stations in real time.</p>
+        
+        <div class="staff-manager-list" id="settingsStaffList">
+          <!-- Dynamically populated staff slots with status & delete button -->
+        </div>
+
+        <div class="add-staff-form">
+          <input type="text" id="newStaffNameInput" class="input-field" placeholder="Staff Name (e.g. Mukesh / Worker)" maxlength="20">
+          <button type="button" class="btn-add-staff" id="btnAddStaff">
+            ➕ ADD STAFF
+          </button>
+        </div>
+      </div>
+
+      <!-- Section 2: Owner Security PIN -->
+      <div class="settings-section">
+        <div class="settings-section-header">
+          <span class="sec-icon">🔒</span>
+          <span class="sec-title">CHANGE OWNER SECURITY PIN</span>
+        </div>
+        <p class="sec-desc">Update secret PIN for Owner access (Default: 1234).</p>
+        
+        <div class="change-pin-form">
+          <input type="password" id="newOwnerPinInput" class="input-field" placeholder="Enter New 4-8 Digit PIN" maxlength="8" autocomplete="off">
+          <button type="button" class="btn-change-pin" id="btnSaveNewPin">
+            🔑 UPDATE PIN
+          </button>
+        </div>
+      </div>
+
+      <div class="settings-footer">
+        <button type="button" class="btn-settings-done" id="btnDoneSettings">✔ DONE</button>
+      </div>
+    </div>
+  </div>
 
   <script src="app.js"></script>
 </body>

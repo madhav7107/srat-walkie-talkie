@@ -49,6 +49,18 @@
   const bgKeepAliveAudio = document.getElementById('bgKeepAliveAudio');
   const btnInstallPwa = document.getElementById('btnInstallPwa');
 
+  // Settings & Roster Elements
+  const btnOwnerSettings = document.getElementById('btnOwnerSettings');
+  const settingsModal = document.getElementById('settingsModal');
+  const btnCloseSettings = document.getElementById('btnCloseSettings');
+  const btnDoneSettings = document.getElementById('btnDoneSettings');
+  const settingsStaffList = document.getElementById('settingsStaffList');
+  const newStaffNameInput = document.getElementById('newStaffNameInput');
+  const btnAddStaff = document.getElementById('btnAddStaff');
+  const newOwnerPinInput = document.getElementById('newOwnerPinInput');
+  const btnSaveNewPin = document.getElementById('btnSaveNewPin');
+  const rosterDots = document.querySelector('.roster-dots');
+
   // Application State
   let currentSelectedRole = 'owner'; // 'owner' or 'staff'
   let currentSelectedSlot = 'owner_1';
@@ -62,6 +74,15 @@
   let ws = null;
   let reconnectTimer = null;
   let wakeLock = null;
+  let isLoggedIn = false;
+
+  // Dynamic Staff Stations and Active Presence
+  let availableStaffSlots = [
+    { id: 'staff_1', label: 'Staff 1', defaultName: 'Staff 1' },
+    { id: 'staff_2', label: 'Staff 2', defaultName: 'Staff 2' }
+  ];
+  let currentActiveSlots = {};
+  let currentSpeakerSlot = '';
 
   // Web Audio Contexts
   let audioCtx = null;
@@ -98,20 +119,51 @@
       ownerSlotsRow.style.display = 'none';
       staffSlotsRow.style.display = 'flex';
       ownerPinSection.style.display = 'none';
-      currentSelectedSlot = 'staff_1';
-      selectSlotPill('staff_1');
-      if (!loginNameInput.value) loginNameInput.placeholder = 'e.g. Ramesh / Worker 1';
+      const firstStaffId = availableStaffSlots.length > 0 ? availableStaffSlots[0].id : 'staff_1';
+      currentSelectedSlot = firstStaffId;
+      selectSlotPill(firstStaffId);
+      if (!loginNameInput.value) loginNameInput.placeholder = 'e.g. Ramesh / Worker';
     }
   }
 
-  // Setup Slot Pill clicks
-  document.querySelectorAll('.slot-pill').forEach(pill => {
+  // Setup Owner Slot Pill clicks
+  ownerSlotsRow.querySelectorAll('.slot-pill').forEach(pill => {
     pill.addEventListener('click', () => {
       const slot = pill.dataset.slot;
       currentSelectedSlot = slot;
       selectSlotPill(slot);
     });
   });
+
+  // Dynamic Staff Slot Pills Rendering
+  function renderStaffPills() {
+    if (!staffSlotsRow) return;
+    staffSlotsRow.innerHTML = '';
+    availableStaffSlots.forEach((slot, idx) => {
+      const btn = document.createElement('button');
+      btn.type = 'button';
+      btn.className = 'slot-pill' + (currentSelectedSlot === slot.id ? ' active' : '');
+      btn.dataset.slot = slot.id;
+      const num = (idx + 1).toString().padStart(2, '0');
+      btn.innerHTML = `
+        <span class="slot-num">${num}</span>
+        <span class="slot-name">${slot.label}${slot.defaultName && slot.defaultName !== slot.label ? ` (${slot.defaultName})` : ''}</span>
+      `;
+      btn.addEventListener('click', () => {
+        currentSelectedSlot = slot.id;
+        selectSlotPill(slot.id);
+      });
+      staffSlotsRow.appendChild(btn);
+    });
+
+    if (currentSelectedRole === 'staff') {
+      const exists = availableStaffSlots.some(s => s.id === currentSelectedSlot);
+      if (!exists && availableStaffSlots.length > 0) {
+        currentSelectedSlot = availableStaffSlots[0].id;
+        selectSlotPill(currentSelectedSlot);
+      }
+    }
+  }
 
   function selectSlotPill(slot) {
     document.querySelectorAll('.slot-pill').forEach(p => p.classList.remove('active'));
@@ -141,6 +193,7 @@
     myName = enteredName;
     mySlot = currentSelectedSlot;
     myRole = currentSelectedRole;
+    isLoggedIn = true;
 
     localStorage.setItem('walkie_logged_in', 'true');
     localStorage.setItem('walkie_slot', mySlot);
@@ -149,7 +202,11 @@
     if (pin) localStorage.setItem('walkie_pin', pin);
 
     switchToRadioScreen();
-    connectWebSocket();
+    if (!ws || ws.readyState !== WebSocket.OPEN) {
+      connectWebSocket();
+    } else {
+      sendClaimSlot();
+    }
   });
 
   // Switch to Radio Screen
@@ -158,19 +215,23 @@
     radioScreen.style.display = 'block';
 
     badgeIcon.textContent = myRole === 'owner' ? '👑' : '📦';
-    badgeText.textContent = `${myRole === 'owner' ? 'OWNER' : 'STAFF'} ${mySlot.slice(-1)} (${myName})`;
+    const slotNum = mySlot.replace(/^[a-z]+_/, '');
+    badgeText.textContent = `${myRole === 'owner' ? 'OWNER' : 'STAFF'} ${slotNum} (${myName})`;
 
     if (myRole === 'owner') {
       btnMasterShift.style.display = 'block';
       staffShiftStatus.style.display = 'none';
+      if (btnOwnerSettings) btnOwnerSettings.style.display = 'inline-flex';
     } else {
       btnMasterShift.style.display = 'none';
       staffShiftStatus.style.display = 'block';
+      if (btnOwnerSettings) btnOwnerSettings.style.display = 'none';
     }
   }
 
   // Logout / Switch User
   btnLogout.addEventListener('click', () => {
+    isLoggedIn = false;
     localStorage.removeItem('walkie_logged_in');
     if (isShiftActive) stopShiftLocally();
     if (ws) {
@@ -179,11 +240,13 @@
     }
     radioScreen.style.display = 'none';
     loginScreen.style.display = 'block';
+    connectWebSocket();
   });
 
   // Check saved session on startup
   const savedLogin = localStorage.getItem('walkie_logged_in');
   if (savedLogin === 'true') {
+    isLoggedIn = true;
     mySlot = localStorage.getItem('walkie_slot') || 'owner_1';
     myRole = localStorage.getItem('walkie_role') || 'owner';
     myName = localStorage.getItem('walkie_name') || 'User';
@@ -193,10 +256,11 @@
     switchToRadioScreen();
     connectWebSocket();
   } else {
-    // Populate defaults on login screen
+    isLoggedIn = false;
     loginNameInput.value = localStorage.getItem('walkie_name') || '';
     loginPinInput.value = '';
     selectRole('owner');
+    connectWebSocket();
   }
 
   // ========================================================================
@@ -213,7 +277,9 @@
 
     ws.onopen = () => {
       networkLed.className = 'counter-dot connected';
-      sendClaimSlot();
+      if (isLoggedIn) {
+        sendClaimSlot();
+      }
     };
 
     ws.onmessage = (event) => {
@@ -242,7 +308,7 @@
   }
 
   function sendClaimSlot() {
-    if (!ws || ws.readyState !== WebSocket.OPEN) return;
+    if (!ws || ws.readyState !== WebSocket.OPEN || !isLoggedIn) return;
     const pin = localStorage.getItem('walkie_pin') || '1234';
     ws.send(JSON.stringify({
       type: 'claim_slot',
@@ -253,25 +319,63 @@
   }
 
   function handleSignaling(msg) {
-    if (msg.type === 'slot_confirmed') {
+    if (msg.type === 'initial_state') {
+      if (Array.isArray(msg.staffSlots)) {
+        availableStaffSlots = msg.staffSlots;
+        renderStaffPills();
+      }
+      currentActiveSlots = msg.activeSlots || {};
+      renderRoster();
+      syncShiftState(msg.globalShiftActive, msg.globalShiftOwner);
+    } else if (msg.type === 'staff_slots_updated') {
+      if (Array.isArray(msg.staffSlots)) {
+        availableStaffSlots = msg.staffSlots;
+        renderStaffPills();
+        renderRoster();
+        if (settingsModal && settingsModal.style.display === 'flex') {
+          renderSettingsStaffList();
+        }
+      }
+    } else if (msg.type === 'slot_confirmed') {
       mySlot = msg.slot;
       myRole = msg.role;
       myName = msg.name;
 
-      badgeIcon.textContent = myRole === 'owner' ? '👑' : '📦';
-      badgeText.textContent = `${myRole === 'owner' ? 'OWNER' : 'STAFF'} ${mySlot.slice(-1)} (${myName})`;
+      if (Array.isArray(msg.staffSlots)) {
+        availableStaffSlots = msg.staffSlots;
+        renderStaffPills();
+      }
 
+      badgeIcon.textContent = myRole === 'owner' ? '👑' : '📦';
+      const slotNum = mySlot.replace(/^[a-z]+_/, '');
+      badgeText.textContent = `${myRole === 'owner' ? 'OWNER' : 'STAFF'} ${slotNum} (${myName})`;
+
+      renderRoster();
       syncShiftState(msg.globalShiftActive, msg.globalShiftOwner);
     } else if (msg.type === 'slot_error') {
       alert(msg.message);
       btnLogout.click();
+    } else if (msg.type === 'slot_evicted') {
+      alert(msg.message || 'Your staff station has been removed by the Owner.');
+      btnLogout.click();
+    } else if (msg.type === 'pin_change_success') {
+      localStorage.setItem('walkie_pin', msg.newPin);
+      alert('Security PIN updated successfully! Keep your new PIN safe.');
+      if (newOwnerPinInput) newOwnerPinInput.value = '';
+    } else if (msg.type === 'settings_error') {
+      alert('Settings Error: ' + (msg.message || 'Action failed'));
     } else if (msg.type === 'shift_status') {
       syncShiftState(msg.active, msg.ownerName);
     } else if (msg.type === 'presence') {
-      updateRoster(msg.activeSlots || {});
+      currentActiveSlots = msg.activeSlots || {};
+      renderRoster();
+      if (settingsModal && settingsModal.style.display === 'flex') {
+        renderSettingsStaffList();
+      }
     } else if (msg.type === 'talk_start') {
       nextPlayTime = 0; // Immediate zero-latency playback start
       currentSpeakerName = msg.senderName || 'Station';
+      currentSpeakerSlot = msg.senderSlot || '';
 
       // Ensure audio context and background player are alive
       if (!audioCtx) initAudio();
@@ -299,13 +403,10 @@
       updateMediaSession();
       updatePersistentNotification();
 
-      // Highlight in roster
-      if (msg.senderSlot) {
-        const item = document.getElementById(`roster_${msg.senderSlot}`);
-        if (item) item.classList.add('talking');
-      }
+      renderRoster();
     } else if (msg.type === 'talk_stop') {
       currentSpeakerName = '';
+      currentSpeakerSlot = '';
 
       // Remote speaker ended -> Roger Beep
       playRogerBeep();
@@ -316,28 +417,168 @@
       lcdSpeakerRole.textContent = 'STANDBY (Channel Open)';
       lcdSpeakerRole.style.color = '#00a152';
 
-      document.querySelectorAll('.roster-item').forEach(el => el.classList.remove('talking'));
+      renderRoster();
       clearVUMeter();
       updateMediaSession();
       updatePersistentNotification();
     }
   }
 
-  function updateRoster(slots) {
+  function renderRoster() {
+    if (!rosterDots) return;
+    const ownerSlots = [
+      { id: 'owner_1', tag: 'O1', label: 'Owner 1' },
+      { id: 'owner_2', tag: 'O2', label: 'Owner 2' },
+      { id: 'owner_3', tag: 'O3', label: 'Owner 3' }
+    ];
+    let html = '';
     let count = 0;
-    ['owner_1', 'owner_2', 'owner_3', 'staff_1', 'staff_2'].forEach(slot => {
-      const el = document.getElementById(`roster_${slot}`);
-      if (!el) return;
-      if (slots[slot]) {
-        count++;
-        el.classList.add('online');
-        el.title = `${slots[slot].name} (${slots[slot].role})`;
-      } else {
-        el.classList.remove('online');
-        el.title = 'Station Offline';
+
+    ownerSlots.forEach(slot => {
+      const isOnline = !!currentActiveSlots[slot.id];
+      if (isOnline) count++;
+      const isTalking = currentSpeakerSlot === slot.id;
+      html += `<div class="roster-item ${isOnline ? 'online' : ''} ${isTalking ? 'talking' : ''}" id="roster_${slot.id}" title="${isOnline ? `${currentActiveSlots[slot.id].name} (Owner)` : slot.label}"><span>${slot.tag}</span></div>`;
+    });
+
+    availableStaffSlots.forEach((slot, idx) => {
+      const isOnline = !!currentActiveSlots[slot.id];
+      if (isOnline) count++;
+      const isTalking = currentSpeakerSlot === slot.id;
+      const tag = `S${idx + 1}`;
+      html += `<div class="roster-item ${isOnline ? 'online' : ''} ${isTalking ? 'talking' : ''}" id="roster_${slot.id}" title="${isOnline ? `${currentActiveSlots[slot.id].name} (Staff)` : slot.label}"><span>${tag}</span></div>`;
+    });
+
+    rosterDots.innerHTML = html;
+    const totalStations = ownerSlots.length + availableStaffSlots.length;
+    counterText.textContent = `${count} / ${totalStations} ONLINE`;
+  }
+
+  // ========================================================================
+  // OWNER SETTINGS PANEL LOGIC
+  // ========================================================================
+
+  function renderSettingsStaffList() {
+    if (!settingsStaffList) return;
+    settingsStaffList.innerHTML = '';
+
+    if (availableStaffSlots.length === 0) {
+      settingsStaffList.innerHTML = '<div style="color:#a0aec0;font-size:12px;padding:8px 0;">No staff stations configured.</div>';
+      return;
+    }
+
+    availableStaffSlots.forEach((slot, idx) => {
+      const item = document.createElement('div');
+      item.className = 'staff-manager-item';
+
+      const activeInfo = currentActiveSlots[slot.id];
+      const isOnline = !!activeInfo;
+      const statusClass = isOnline ? 'online' : 'offline';
+      const statusText = isOnline ? `ONLINE (${activeInfo.name})` : 'OFFLINE';
+
+      item.innerHTML = `
+        <div class="staff-info-col">
+          <div class="staff-main-name">
+            <span class="staff-num-tag">#${idx + 1}</span>
+            <strong>${slot.label}</strong> ${slot.defaultName && slot.defaultName !== slot.label ? `<span class="staff-sub-name">(${slot.defaultName})</span>` : ''}
+          </div>
+          <div class="staff-status-badge ${statusClass}">
+            <span class="status-dot"></span>
+            <span>${statusText}</span>
+          </div>
+        </div>
+        <button type="button" class="btn-remove-staff" data-slot="${slot.id}" title="Remove Staff Station" ${availableStaffSlots.length <= 1 ? 'disabled style="opacity:0.3;cursor:not-allowed;"' : ''}>
+          🗑️
+        </button>
+      `;
+
+      const removeBtn = item.querySelector('.btn-remove-staff');
+      removeBtn.addEventListener('click', () => {
+        if (availableStaffSlots.length <= 1) {
+          alert('At least 1 Godown Staff station must remain in the system.');
+          return;
+        }
+        const confirmed = confirm(`Are you sure you want to remove ${slot.label}? Any staff currently logged in on this station will be disconnected.`);
+        if (confirmed) {
+          const pin = localStorage.getItem('walkie_pin') || '1234';
+          ws.send(JSON.stringify({
+            type: 'remove_staff_slot',
+            slotId: slot.id,
+            pin: pin
+          }));
+        }
+      });
+
+      settingsStaffList.appendChild(item);
+    });
+  }
+
+  // Settings Modal open/close listeners
+  if (btnOwnerSettings) {
+    btnOwnerSettings.addEventListener('click', () => {
+      renderSettingsStaffList();
+      newStaffNameInput.value = '';
+      newOwnerPinInput.value = '';
+      settingsModal.style.display = 'flex';
+    });
+  }
+
+  if (btnCloseSettings) {
+    btnCloseSettings.addEventListener('click', () => {
+      settingsModal.style.display = 'none';
+    });
+  }
+
+  if (btnDoneSettings) {
+    btnDoneSettings.addEventListener('click', () => {
+      settingsModal.style.display = 'none';
+    });
+  }
+
+  if (settingsModal) {
+    settingsModal.addEventListener('click', (e) => {
+      if (e.target === settingsModal) {
+        settingsModal.style.display = 'none';
       }
     });
-    counterText.textContent = `${count} / 5 ONLINE`;
+  }
+
+  if (btnAddStaff) {
+    btnAddStaff.addEventListener('click', () => {
+      const name = newStaffNameInput.value.trim();
+      const pin = localStorage.getItem('walkie_pin') || '1234';
+      if (!ws || ws.readyState !== WebSocket.OPEN) {
+        alert('Not connected to server.');
+        return;
+      }
+      ws.send(JSON.stringify({
+        type: 'add_staff_slot',
+        name: name || undefined,
+        pin: pin
+      }));
+      newStaffNameInput.value = '';
+    });
+  }
+
+  if (btnSaveNewPin) {
+    btnSaveNewPin.addEventListener('click', () => {
+      const newPin = newOwnerPinInput.value.trim();
+      if (!newPin || newPin.length < 4) {
+        alert('Security PIN must be at least 4 digits/characters.');
+        newOwnerPinInput.focus();
+        return;
+      }
+      const oldPin = localStorage.getItem('walkie_pin') || '1234';
+      if (!ws || ws.readyState !== WebSocket.OPEN) {
+        alert('Not connected to server.');
+        return;
+      }
+      ws.send(JSON.stringify({
+        type: 'change_owner_pin',
+        oldPin: oldPin,
+        newPin: newPin
+      }));
+    });
   }
 
   // ========================================================================

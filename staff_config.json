@@ -1,0 +1,15 @@
+{
+  "ownerPin": "1234",
+  "staffSlots": [
+    {
+      "id": "staff_1",
+      "label": "Staff 1",
+      "defaultName": "Staff 1"
+    },
+    {
+      "id": "staff_2",
+      "label": "Staff 2",
+      "defaultName": "Staff 2"
+    }
+  ]
+}

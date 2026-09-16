@@ -27,7 +27,7 @@ function freePort(port) {
   } catch (e) {}
 }
 
-const isCloud = !!process.env.PORT || !!process.env.RENDER;
+const isCloud = process.platform !== 'win32' || !!process.env.PORT || !!process.env.RENDER || process.env.NODE_ENV === 'production';
 if (!isCloud) {
   freePort(3000);
   freePort(3443);
@@ -83,9 +83,40 @@ function getLocalIps() {
   return ips;
 }
 
+const configPath = path.join(__dirname, 'staff_config.json');
+
+function loadConfig() {
+  const defaultConfig = {
+    ownerPin: '1234',
+    staffSlots: [
+      { id: 'staff_1', label: 'Staff 1', defaultName: 'Staff 1' },
+      { id: 'staff_2', label: 'Staff 2', defaultName: 'Staff 2' }
+    ]
+  };
+  try {
+    if (fs.existsSync(configPath)) {
+      const parsed = JSON.parse(fs.readFileSync(configPath, 'utf8'));
+      if (parsed && Array.isArray(parsed.staffSlots) && parsed.staffSlots.length > 0) {
+        return parsed;
+      }
+    }
+  } catch (e) {}
+  saveConfig(defaultConfig);
+  return defaultConfig;
+}
+
+function saveConfig(cfg) {
+  try {
+    fs.writeFileSync(configPath, JSON.stringify(cfg, null, 2), 'utf8');
+  } catch (e) {
+    console.error('Error saving staff config:', e);
+  }
+}
+
+let serverConfig = loadConfig();
+
 let globalShiftActive = false;
 let globalShiftOwner = '';
-const OWNER_PIN = '1234'; // Default PIN for 3 Owner slots
 
 const clients = new Map(); // ws -> { slot, role, name, isTalking }
 
@@ -99,12 +130,13 @@ function setupWebSocketServer(wss) {
     };
     clients.set(ws, clientData);
 
-    // Send initial status
+    // Send initial status with current staff slots
     ws.send(JSON.stringify({
       type: 'initial_state',
       globalShiftActive,
       globalShiftOwner,
-      activeSlots: getActiveSlots()
+      activeSlots: getActiveSlots(),
+      staffSlots: serverConfig.staffSlots
     }));
 
     ws.isAlive = true;
@@ -125,19 +157,27 @@ function setupWebSocketServer(wss) {
           const msg = JSON.parse(data.toString());
 
           if (msg.type === 'claim_slot') {
-            const requestedSlot = msg.slot; // 'owner_1'|'owner_2'|'owner_3'|'staff_1'|'staff_2'
+            const requestedSlot = msg.slot;
 
-            // Check if Owner and verify PIN
+            // Check if Owner and verify PIN against serverConfig
             if (requestedSlot.startsWith('owner_')) {
-              if (msg.pin !== OWNER_PIN) {
+              if (msg.pin !== serverConfig.ownerPin) {
                 ws.send(JSON.stringify({
                   type: 'slot_error',
-                  message: 'Incorrect Owner PIN. Default PIN is 1234.'
+                  message: 'Incorrect Owner PIN. Please enter the valid Owner PIN.'
                 }));
                 return;
               }
               clientData.role = 'owner';
             } else if (requestedSlot.startsWith('staff_')) {
+              const validStaff = serverConfig.staffSlots.some(s => s.id === requestedSlot);
+              if (!validStaff) {
+                ws.send(JSON.stringify({
+                  type: 'slot_error',
+                  message: 'This staff station is no longer active.'
+                }));
+                return;
+              }
               clientData.role = 'staff';
             } else {
               ws.send(JSON.stringify({
@@ -156,7 +196,8 @@ function setupWebSocketServer(wss) {
               role: clientData.role,
               name: clientData.name,
               globalShiftActive,
-              globalShiftOwner
+              globalShiftOwner,
+              staffSlots: serverConfig.staffSlots
             }));
 
             broadcastPresence();
@@ -202,6 +243,97 @@ function setupWebSocketServer(wss) {
               type: 'talk_stop',
               senderName: clientData.name
             });
+          } else if (msg.type === 'add_staff_slot') {
+            // Strictly Owner-only
+            if (clientData.role !== 'owner') {
+              ws.send(JSON.stringify({ type: 'settings_error', message: 'Unauthorized: Only Owners can manage staff.' }));
+              return;
+            }
+
+            const staffName = (msg.name || '').trim() || `Staff ${serverConfig.staffSlots.length + 1}`;
+            let maxIdNum = 0;
+            for (const s of serverConfig.staffSlots) {
+              const m = s.id.match(/^staff_(\d+)$/);
+              if (m) {
+                const n = parseInt(m[1], 10);
+                if (n > maxIdNum) maxIdNum = n;
+              }
+            }
+            const nextSlotId = `staff_${maxIdNum + 1}`;
+            const newSlot = {
+              id: nextSlotId,
+              label: `Staff ${maxIdNum + 1}`,
+              defaultName: staffName
+            };
+
+            serverConfig.staffSlots.push(newSlot);
+            saveConfig(serverConfig);
+
+            console.log(`[Settings] Owner ${clientData.name} added staff slot: ${newSlot.id} (${newSlot.defaultName})`);
+
+            broadcastToAll({
+              type: 'staff_slots_updated',
+              staffSlots: serverConfig.staffSlots
+            });
+            broadcastPresence();
+
+          } else if (msg.type === 'remove_staff_slot') {
+            // Strictly Owner-only
+            if (clientData.role !== 'owner') {
+              ws.send(JSON.stringify({ type: 'settings_error', message: 'Unauthorized: Only Owners can manage staff.' }));
+              return;
+            }
+
+            const slotToRemove = msg.slotId;
+            if (!slotToRemove || serverConfig.staffSlots.length <= 1) {
+              ws.send(JSON.stringify({ type: 'settings_error', message: 'At least one Staff slot must remain active.' }));
+              return;
+            }
+
+            serverConfig.staffSlots = serverConfig.staffSlots.filter(s => s.id !== slotToRemove);
+            saveConfig(serverConfig);
+
+            console.log(`[Settings] Owner ${clientData.name} removed staff slot: ${slotToRemove}`);
+
+            // Evict any client on that slot
+            for (const [cWs, cData] of clients) {
+              if (cData.slot === slotToRemove) {
+                cWs.send(JSON.stringify({
+                  type: 'slot_evicted',
+                  message: 'Your staff station was removed by Owner.'
+                }));
+                cData.slot = null;
+                cData.role = 'unknown';
+              }
+            }
+
+            broadcastToAll({
+              type: 'staff_slots_updated',
+              staffSlots: serverConfig.staffSlots
+            });
+            broadcastPresence();
+
+          } else if (msg.type === 'change_owner_pin') {
+            // Strictly Owner-only
+            if (clientData.role !== 'owner') {
+              ws.send(JSON.stringify({ type: 'settings_error', message: 'Unauthorized: Only Owners can change PIN.' }));
+              return;
+            }
+
+            const newPin = String(msg.newPin || '').trim();
+            if (!newPin || newPin.length < 4) {
+              ws.send(JSON.stringify({ type: 'settings_error', message: 'Owner PIN must be at least 4 digits.' }));
+              return;
+            }
+
+            serverConfig.ownerPin = newPin;
+            saveConfig(serverConfig);
+            console.log(`[Settings] Owner ${clientData.name} updated the Owner Security PIN.`);
+
+            ws.send(JSON.stringify({
+              type: 'pin_change_success',
+              message: 'Owner Security PIN successfully updated!'
+            }));
           }
         } catch (e) {
           console.error('Signaling error:', e);
@@ -262,6 +394,15 @@ function broadcastToOthers(senderWs, obj) {
   const str = JSON.stringify(obj);
   for (const [ws] of clients) {
     if (ws !== senderWs && ws.readyState === 1) {
+      ws.send(str);
+    }
+  }
+}
+
+function broadcastToAll(obj) {
+  const str = JSON.stringify(obj);
+  for (const [ws] of clients) {
+    if (ws.readyState === 1) {
       ws.send(str);
     }
   }

@@ -810,3 +810,267 @@ body {
   from { opacity: 0; transform: translateY(6px); }
   to { opacity: 1; transform: translateY(0); }
 }
+
+/* Owner Settings Top Button */
+.top-action-buttons {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.btn-owner-settings {
+  font-size: 0.7rem;
+  font-weight: 700;
+  color: #ffab00;
+  background: rgba(255, 171, 0, 0.12);
+  border: 1px solid rgba(255, 171, 0, 0.4);
+  padding: 4px 10px;
+  border-radius: 6px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  transition: all 0.2s;
+}
+
+.btn-owner-settings:hover, .btn-owner-settings:active {
+  background: rgba(255, 171, 0, 0.25);
+  box-shadow: 0 0 10px rgba(255, 171, 0, 0.3);
+}
+
+/* Settings Modal Dialog */
+.settings-modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.85);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
+  padding: 16px;
+}
+
+.settings-modal-card {
+  width: 100%;
+  max-width: 440px;
+  max-height: 90vh;
+  overflow-y: auto;
+  background: #121820;
+  border: 2px solid #29384d;
+  border-radius: 20px;
+  padding: 20px;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.8), 0 0 30px rgba(255, 171, 0, 0.15);
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  animation: modalPop 0.25s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+@keyframes modalPop {
+  from { opacity: 0; transform: scale(0.92); }
+  to { opacity: 1; transform: scale(1); }
+}
+
+.settings-modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-bottom: 1px solid #1f2937;
+  padding-bottom: 12px;
+}
+
+.settings-modal-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 1rem;
+  font-weight: 800;
+  letter-spacing: 0.5px;
+  color: #ffab00;
+}
+
+.settings-title-icon {
+  font-size: 1.2rem;
+}
+
+.settings-close-btn {
+  background: transparent;
+  border: none;
+  color: #90a4ae;
+  font-size: 1.2rem;
+  font-weight: bold;
+  cursor: pointer;
+  padding: 4px 8px;
+  border-radius: 6px;
+}
+
+.settings-close-btn:active {
+  color: #fff;
+  background: #1e293b;
+}
+
+/* Sections */
+.settings-section {
+  background: #16202c;
+  border: 1px solid #233142;
+  border-radius: 12px;
+  padding: 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.settings-section-header {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: #eceff1;
+  font-size: 0.82rem;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+}
+
+.sec-desc {
+  font-size: 0.72rem;
+  color: #78909c;
+  margin: 0;
+}
+
+/* Staff Manager List */
+.staff-manager-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  max-height: 180px;
+  overflow-y: auto;
+}
+
+.staff-manager-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: #0f161f;
+  border: 1px solid #202c3d;
+  padding: 8px 12px;
+  border-radius: 8px;
+}
+
+.staff-item-info {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.staff-badge-tag {
+  font-family: monospace;
+  font-size: 0.7rem;
+  font-weight: bold;
+  background: rgba(0, 229, 255, 0.15);
+  color: #00e5ff;
+  padding: 2px 6px;
+  border-radius: 4px;
+}
+
+.staff-item-name {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: #fff;
+}
+
+.staff-item-status {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #455a64;
+}
+
+.staff-item-status.online {
+  background: #00e676;
+  box-shadow: 0 0 8px #00e676;
+}
+
+.btn-remove-staff {
+  background: rgba(255, 23, 68, 0.15);
+  border: 1px solid rgba(255, 23, 68, 0.3);
+  color: #ff1744;
+  padding: 4px 8px;
+  border-radius: 6px;
+  font-size: 0.72rem;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.btn-remove-staff:hover, .btn-remove-staff:active {
+  background: rgba(255, 23, 68, 0.35);
+}
+
+/* Add Staff Form */
+.add-staff-form, .change-pin-form {
+  display: flex;
+  gap: 8px;
+  margin-top: 4px;
+}
+
+.add-staff-form .input-field, .change-pin-form .input-field {
+  flex: 1;
+  padding: 8px 12px;
+  font-size: 0.85rem;
+}
+
+.btn-add-staff {
+  background: #00b0ff;
+  color: #fff;
+  border: none;
+  border-radius: 8px;
+  padding: 0 14px;
+  font-size: 0.78rem;
+  font-weight: 700;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.btn-add-staff:active {
+  background: #0091ea;
+}
+
+.btn-change-pin {
+  background: #ffab00;
+  color: #000;
+  border: none;
+  border-radius: 8px;
+  padding: 0 14px;
+  font-size: 0.78rem;
+  font-weight: 700;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.btn-change-pin:active {
+  background: #ffd54f;
+}
+
+.settings-footer {
+  display: flex;
+  justify-content: flex-end;
+}
+
+.btn-settings-done {
+  width: 100%;
+  background: #263238;
+  color: #eceff1;
+  border: 1px solid #37474f;
+  border-radius: 10px;
+  padding: 10px;
+  font-weight: bold;
+  font-size: 0.88rem;
+  cursor: pointer;
+}
+
+.btn-settings-done:active {
+  background: #37474f;
+}
