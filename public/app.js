@@ -61,12 +61,20 @@
   const btnSaveNewPin = document.getElementById('btnSaveNewPin');
   const rosterDots = document.querySelector('.roster-dots');
 
+  // Owner Channel Switcher Elements
+  const ownerChannelBar = document.getElementById('ownerChannelBar');
+  const btnChAll = document.getElementById('btnChAll');
+  const btnChOwners = document.getElementById('btnChOwners');
+  const tacticalLcd = document.getElementById('tacticalLcd');
+  const lcdChannelLabel = document.getElementById('lcdChannelLabel');
+
   // Application State
   let currentSelectedRole = 'owner'; // 'owner' or 'staff'
   let currentSelectedSlot = 'owner_1';
   let myRole = 'owner';
   let mySlot = 'owner_1';
   let myName = '';
+  let currentChannel = 'all'; // 'all' (Broadcast) or 'owners' (Private Owner Channel)
   let isShiftActive = false;
   let isTransmitting = false;
   let isMicLocked = false;
@@ -222,11 +230,55 @@
       btnMasterShift.style.display = 'block';
       staffShiftStatus.style.display = 'none';
       if (btnOwnerSettings) btnOwnerSettings.style.display = 'inline-flex';
+      if (ownerChannelBar) ownerChannelBar.style.display = 'flex';
+      setChannel(currentChannel);
     } else {
       btnMasterShift.style.display = 'none';
       staffShiftStatus.style.display = 'block';
       if (btnOwnerSettings) btnOwnerSettings.style.display = 'none';
+      if (ownerChannelBar) ownerChannelBar.style.display = 'none';
+      setChannel('all');
     }
+  }
+
+  // Owner Channel Frequency Switching
+  function setChannel(channel) {
+    currentChannel = (channel === 'owners' && myRole === 'owner') ? 'owners' : 'all';
+    if (currentChannel === 'owners') {
+      if (btnChOwners) btnChOwners.classList.add('active');
+      if (btnChAll) btnChAll.classList.remove('active');
+      if (tacticalLcd) tacticalLcd.classList.add('channel-private');
+      if (pttButton) pttButton.classList.add('channel-private');
+      if (lcdChannelLabel) lcdChannelLabel.textContent = 'CH-02 [OWNER PRIVATE ENCRYPTED]';
+      if (!currentSpeakerSlot) {
+        lcdSpeakerRole.textContent = 'STANDBY (Owner Private)';
+        lcdSpeakerRole.style.color = '#ffd54f';
+      }
+    } else {
+      if (btnChAll) btnChAll.classList.add('active');
+      if (btnChOwners) btnChOwners.classList.remove('active');
+      if (tacticalLcd) tacticalLcd.classList.remove('channel-private');
+      if (pttButton) pttButton.classList.remove('channel-private');
+      if (lcdChannelLabel) lcdChannelLabel.textContent = 'CH-01 [WAREHOUSE + OFFICE]';
+      if (!currentSpeakerSlot) {
+        lcdSpeakerRole.textContent = 'STANDBY (Channel Open)';
+        lcdSpeakerRole.style.color = '#00a152';
+      }
+    }
+
+    if (ws && ws.readyState === WebSocket.OPEN && myRole === 'owner') {
+      ws.send(JSON.stringify({
+        type: 'set_channel',
+        channel: currentChannel
+      }));
+    }
+  }
+
+  if (btnChAll) {
+    btnChAll.addEventListener('click', () => setChannel('all'));
+  }
+  if (btnChOwners) {
+    btnChOwners.addEventListener('click', () => setChannel('owners'));
   }
 
   // Logout / Switch User
@@ -390,16 +442,27 @@
       antennaLed.className = 'antenna-tip tx';
       speakerRing.className = 'speaker-state-ring rx';
 
-      const roleTag = msg.senderRole === 'owner' ? '👑 OWNER' : '📦 STAFF';
-      lcdSpeakerName.textContent = msg.senderName.toUpperCase();
-      lcdSpeakerRole.textContent = `🎙️ ${roleTag} IS TRANSMITTING...`;
-      lcdSpeakerRole.style.color = '#00e676';
+      const isIncomingPrivate = msg.channel === 'owners';
+      if (isIncomingPrivate) {
+        if (tacticalLcd) tacticalLcd.classList.add('channel-private');
+        lcdSpeakerName.textContent = msg.senderName.toUpperCase();
+        lcdSpeakerRole.textContent = `🔒 [OWNER PRIVATE] TRANSMITTING...`;
+        lcdSpeakerRole.style.color = '#ffd54f';
+      } else {
+        if (currentChannel !== 'owners' && tacticalLcd) {
+          tacticalLcd.classList.remove('channel-private');
+        }
+        const roleTag = msg.senderRole === 'owner' ? '👑 OWNER' : '📦 STAFF';
+        lcdSpeakerName.textContent = msg.senderName.toUpperCase();
+        lcdSpeakerRole.textContent = `🎙️ ${roleTag} IS TRANSMITTING...`;
+        lcdSpeakerRole.style.color = '#00e676';
+      }
 
       // Vibrate mobile device (in pocket)
       if (navigator.vibrate) navigator.vibrate([150, 80, 150]);
 
       // Pop-up mobile system notification if app is in background or phone locked
-      showBackgroundSpeakerNotification(msg.senderName, msg.senderRole);
+      showBackgroundSpeakerNotification(msg.senderName, isIncomingPrivate ? 'Owner [PRIVATE]' : msg.senderRole);
       updateMediaSession();
       updatePersistentNotification();
 
@@ -413,9 +476,17 @@
       antennaLed.className = 'antenna-tip';
       speakerRing.className = 'speaker-state-ring';
 
-      lcdSpeakerName.textContent = 'NOBODY SPEAKING';
-      lcdSpeakerRole.textContent = 'STANDBY (Channel Open)';
-      lcdSpeakerRole.style.color = '#00a152';
+      if (currentChannel === 'owners') {
+        if (tacticalLcd) tacticalLcd.classList.add('channel-private');
+        lcdSpeakerName.textContent = 'NOBODY SPEAKING';
+        lcdSpeakerRole.textContent = 'STANDBY (Owner Private)';
+        lcdSpeakerRole.style.color = '#ffd54f';
+      } else {
+        if (tacticalLcd) tacticalLcd.classList.remove('channel-private');
+        lcdSpeakerName.textContent = 'NOBODY SPEAKING';
+        lcdSpeakerRole.textContent = 'STANDBY (Channel Open)';
+        lcdSpeakerRole.style.color = '#00a152';
+      }
 
       renderRoster();
       clearVUMeter();
