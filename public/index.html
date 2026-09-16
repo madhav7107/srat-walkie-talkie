@@ -118,12 +118,10 @@
         <span class="model-badge">SRAT - WALKIE TALKIE</span>
       </div>
       <div class="top-action-buttons">
-        <button type="button" class="btn-owner-settings" id="btnOwnerSettings" style="display: none;" title="Owner Settings (Manage Staff & PIN)">
-          ⚙️ SETTINGS
-        </button>
-        <button type="button" class="switch-user-btn" id="btnLogout" title="Switch Account / Logout">
-          🚪 LOGOUT
-        </button>
+        <div class="online-counter" id="onlineCounterBadge">
+          <span class="counter-dot" id="networkLed"></span>
+          <span id="counterText">1 / 4 ONLINE</span>
+        </div>
       </div>
     </div>
 
@@ -136,21 +134,23 @@
           <span class="station-icon" id="badgeIcon">👑</span>
           <span class="station-text" id="badgeText">OWNER 1 (Boss)</span>
         </div>
-        <div class="online-counter" id="onlineCounterBadge">
-          <span class="counter-dot" id="networkLed"></span>
-          <span id="counterText">1 / 5 ONLINE</span>
+        <div class="header-action-buttons">
+          <button type="button" class="btn-owner-settings" id="btnOwnerSettings" style="display: none;" title="Owner Settings (Manage Staff & PIN)">
+            ⚙️ SETTINGS
+          </button>
+          <button type="button" class="switch-user-btn" id="btnLogout" title="Switch Account / Logout">
+            🚪 LOGOUT
+          </button>
         </div>
       </div>
 
-      <!-- Online Active Slots Indicator (5 LEDs) -->
+      <!-- Online Active Slots Indicator (Dynamic LEDs) -->
       <div class="roster-bar">
-        <span class="roster-label">STATIONS:</span>
+        <div class="roster-top-row">
+          <span class="roster-label">STATIONS:</span>
+        </div>
         <div class="roster-dots">
-          <div class="roster-item" id="roster_owner_1" title="Owner 1"><span>O1</span></div>
-          <div class="roster-item" id="roster_owner_2" title="Owner 2"><span>O2</span></div>
-          <div class="roster-item" id="roster_owner_3" title="Owner 3"><span>O3</span></div>
-          <div class="roster-item" id="roster_staff_1" title="Staff 1"><span>S1</span></div>
-          <div class="roster-item" id="roster_staff_2" title="Staff 2"><span>S2</span></div>
+          <!-- Dynamically populated -->
         </div>
       </div>
 
@@ -175,10 +175,23 @@
         </div>
       </div>
 
+      <!-- Owner Frequency / Channel Switcher (Only visible to Owners) -->
+      <div class="channel-selector-bar" id="ownerChannelBar" style="display: none;">
+        <span class="ch-label">CHANNEL:</span>
+        <div class="ch-toggle-group">
+          <button type="button" class="btn-ch active" id="btnChAll" data-channel="all" title="Broadcast to all Owners and Godown Staff">
+            <span class="ch-icon">📢</span> CH-1: ALL STATIONS
+          </button>
+          <button type="button" class="btn-ch" id="btnChOwners" data-channel="owners" title="Private voice channel strictly between Owners">
+            <span class="ch-icon">🔒</span> CH-2: OWNERS PRIVATE
+          </button>
+        </div>
+      </div>
+
       <!-- Backlit Tactical LCD Screen -->
-      <div class="tactical-lcd">
+      <div class="tactical-lcd" id="tacticalLcd">
         <div class="lcd-header">
-          <span class="lcd-channel">CH-01 [WAREHOUSE-OFFICE]</span>
+          <span class="lcd-channel" id="lcdChannelLabel">CH-01 [WAREHOUSE + OFFICE]</span>
           <span class="lcd-freq" id="lcdFreq">16.0 kHz OPUS</span>
         </div>
 
