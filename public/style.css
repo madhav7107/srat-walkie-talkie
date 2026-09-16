@@ -1074,3 +1074,128 @@ body {
 .btn-settings-done:active {
   background: #37474f;
 }
+
+/* Header Action Buttons */
+.header-action-buttons {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+}
+
+/* ============================================================ */
+/* OWNER FREQUENCY / CHANNEL SWITCHER (RESPONSIVE)              */
+/* ============================================================ */
+.channel-selector-bar {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  background: #111a24;
+  border: 1px solid #1e293b;
+  border-radius: 10px;
+  padding: 8px 10px;
+  margin-bottom: 4px;
+  width: 100%;
+}
+
+.ch-label {
+  font-size: 0.65rem;
+  font-weight: 800;
+  letter-spacing: 0.5px;
+  color: #64748b;
+  text-transform: uppercase;
+}
+
+.ch-toggle-group {
+  display: flex;
+  gap: 6px;
+  width: 100%;
+}
+
+.btn-ch {
+  flex: 1 1 50%;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  background: #1e293b;
+  color: #94a3b8;
+  border: 1px solid #334155;
+  border-radius: 6px;
+  padding: 8px 4px;
+  font-size: 0.68rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.2s;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.btn-ch .ch-icon {
+  font-size: 0.8rem;
+}
+
+.btn-ch.active#btnChAll {
+  background: rgba(0, 230, 118, 0.15);
+  color: #00e676;
+  border-color: #00e676;
+  box-shadow: 0 0 8px rgba(0, 230, 118, 0.25);
+}
+
+.btn-ch.active#btnChOwners {
+  background: rgba(255, 171, 0, 0.2);
+  color: #ffab00;
+  border-color: #ffab00;
+  box-shadow: 0 0 10px rgba(255, 171, 0, 0.35);
+}
+
+/* Tactical LCD Private Mode (Amber / Gold Theme) */
+.tactical-lcd.channel-private {
+  border-color: #ffab00;
+  background: radial-gradient(circle at center, #241a00 0%, #0d0900 100%);
+  box-shadow: inset 0 0 25px rgba(255, 171, 0, 0.25), 0 0 15px rgba(255, 171, 0, 0.15);
+}
+
+.tactical-lcd.channel-private .lcd-header {
+  border-color: rgba(255, 171, 0, 0.3);
+}
+
+.tactical-lcd.channel-private .lcd-channel {
+  color: #ffab00;
+  text-shadow: 0 0 6px rgba(255, 171, 0, 0.6);
+}
+
+.tactical-lcd.channel-private .speaker-state-ring {
+  border-color: #ffab00;
+}
+
+.tactical-lcd.channel-private .speaker-state-ring.rx {
+  border-color: #ffd54f;
+  box-shadow: 0 0 15px #ffd54f;
+}
+
+.tactical-lcd.channel-private .speaker-state-ring.rx .speaker-pulse {
+  background: #ffd54f;
+}
+
+.tactical-lcd.channel-private .speaker-sub {
+  color: #ffd54f;
+}
+
+.tactical-lcd.channel-private .vu-cell.lit {
+  background: #ffab00;
+  box-shadow: 0 0 6px #ffab00;
+}
+
+/* PTT Button Private Mode Accent */
+.hardware-ptt-btn.channel-private .ptt-center-face {
+  border-color: #ffab00;
+  box-shadow: inset 0 0 15px rgba(255, 171, 0, 0.3);
+}
+
+.hardware-ptt-btn.channel-private:active .ptt-center-face,
+.hardware-ptt-btn.channel-private.transmitting .ptt-center-face {
+  background: radial-gradient(circle, #ff6d00 0%, #ff3d00 100%);
+  box-shadow: 0 0 25px rgba(255, 109, 0, 0.8);
+}
