@@ -11,7 +11,7 @@
   <link rel="manifest" href="manifest.json">
   <link rel="icon" type="image/png" href="icon-192.png">
   <link rel="apple-touch-icon" href="icon-192.png">
-  <link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="style.css?v=8">
 </head>
 <body>
 
@@ -126,21 +126,21 @@
         </div>
       </div>
 
-      <!-- Master Shift Control Bar (Hidden in Unified 5-Station Peer Mode) -->
-      <div class="master-shift-bar" id="masterShiftBar" style="display: none;">
+      <!-- Master Shift Control Bar -->
+      <div class="master-shift-bar" id="masterShiftBar">
         <div class="shift-details">
-          <div class="shift-state-indicator" id="shiftStateLed"></div>
+          <div class="shift-state-indicator active" id="shiftStateLed"></div>
           <div class="shift-state-text">
-            <div class="shift-state-title" id="shiftTitle">CHANNEL ACTIVE</div>
-            <div class="shift-state-sub" id="shiftSub">Broadcasting Open</div>
+            <div class="shift-state-title" id="shiftTitle">SHIFT LIVE // BROADCASTING</div>
+            <div class="shift-state-sub" id="shiftSub">Broadcast Open • All Stations Ready</div>
           </div>
         </div>
         
         <div class="shift-action-slot">
-          <button type="button" class="btn-master-shift start" id="btnMasterShift" style="display: none;">
-            START
+          <button type="button" class="btn-master-shift stop" id="btnMasterShift">
+            STOP SHIFT
           </button>
-          <div class="staff-shift-status off" id="staffShiftStatus" style="display: none;">
+          <div class="staff-shift-status active" id="staffShiftStatus" style="display: none;">
             ONLINE
           </div>
         </div>
@@ -269,10 +269,11 @@
           <!-- Dynamically populated staff slots with status & delete button -->
         </div>
 
-        <div class="add-staff-form">
-          <input type="text" id="newStaffNameInput" class="input-field" placeholder="Staff Name (e.g. Mukesh / Worker)" maxlength="20">
+        <div class="add-staff-form" style="display: flex; flex-direction: column; gap: 8px;">
+          <input type="text" id="newStaffNameInput" class="input-field" placeholder="Person / Staff Name (e.g. Ramesh)" maxlength="20">
+          <input type="password" id="newStaffPinInput" class="input-field" placeholder="Security PIN (4 digits)" maxlength="8" autocomplete="off">
           <button type="button" class="btn-add-staff" id="btnAddStaff">
-            ➕ ADD STAFF
+            ➕ ADD PERSON
           </button>
         </div>
       </div>
@@ -325,6 +326,6 @@
     </div>
   </div>
 
-  <script src="app.js?v=7"></script>
+  <script src="app.js?v=8"></script>
 </body>
 </html>
