@@ -1,33 +1,9 @@
 {
-  "ownerSlots": [
-    {
-      "id": "owner_1",
-      "label": "Nimeeshbhai",
-      "pin": "3005"
-    },
-    {
-      "id": "owner_2",
-      "label": "Kalpeshbhai",
-      "pin": "1111"
-    },
-    {
-      "id": "owner_3",
-      "label": "Madhav",
-      "pin": "7107"
-    }
-  ],
-  "staffSlots": [
-    {
-      "id": "staff_1",
-      "label": "Sagarbhai",
-      "defaultName": "Sagarbhai",
-      "pin": "0954"
-    },
-    {
-      "id": "staff_2",
-      "label": "Devraj",
-      "defaultName": "Devraj",
-      "pin": "1234"
-    }
+  "stations": [
+    { "id": "station_1", "name": "Nimeeshbhai", "pin": "3005" },
+    { "id": "station_2", "name": "Kalpeshbhai", "pin": "1111" },
+    { "id": "station_3", "name": "Madhav", "pin": "7107" },
+    { "id": "station_4", "name": "Sagarbhai", "pin": "0954" },
+    { "id": "station_5", "name": "Devraj", "pin": "1234" }
   ]
 }
