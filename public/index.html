@@ -55,15 +55,15 @@
         <div class="slot-pills-row" id="ownerSlotsRow">
           <button type="button" class="slot-pill active" data-slot="owner_1">
             <span class="slot-num">01</span>
-            <span class="slot-name">Owner 1</span>
+            <span class="slot-name">Nimeeshbhai</span>
           </button>
           <button type="button" class="slot-pill" data-slot="owner_2">
             <span class="slot-num">02</span>
-            <span class="slot-name">Owner 2</span>
+            <span class="slot-name">Kalpeshbhai</span>
           </button>
           <button type="button" class="slot-pill" data-slot="owner_3">
             <span class="slot-num">03</span>
-            <span class="slot-name">Owner 3</span>
+            <span class="slot-name">Madhav</span>
           </button>
         </div>
 
@@ -71,25 +71,19 @@
         <div class="slot-pills-row" id="staffSlotsRow" style="display: none;">
           <button type="button" class="slot-pill active" data-slot="staff_1">
             <span class="slot-num">01</span>
-            <span class="slot-name">Godown Staff 1</span>
+            <span class="slot-name">Sagarbhai</span>
           </button>
           <button type="button" class="slot-pill" data-slot="staff_2">
             <span class="slot-num">02</span>
-            <span class="slot-name">Godown Staff 2</span>
+            <span class="slot-name">Devraj</span>
           </button>
         </div>
       </div>
 
-      <!-- Step 3: Identity & Security -->
-      <div class="form-section">
-        <label class="form-label">3. YOUR NAME / CALLSIGN</label>
-        <input type="text" id="loginNameInput" class="input-field" placeholder="Enter your name (e.g. Ramesh / Boss)" maxlength="20">
-      </div>
-
-      <!-- Owner PIN (Only for Owner slots) -->
+      <!-- Step 3: Security PIN -->
       <div class="form-section" id="ownerPinSection">
-        <label class="form-label">OWNER SECURITY PIN</label>
-        <input type="password" id="loginPinInput" class="input-field" placeholder="Enter Secret Owner PIN" maxlength="8" autocomplete="off">
+        <label class="form-label" id="pinLabel">3. ENTER SECURITY PIN</label>
+        <input type="password" id="loginPinInput" class="input-field" placeholder="Enter Secret PIN" maxlength="8" autocomplete="off" inputmode="numeric">
       </div>
 
       <button type="button" class="btn-login-submit" id="btnEnterRadio">
