@@ -645,22 +645,26 @@ body {
   align-items: center;
   outline: none;
   transition: all 0.12s ease;
+  touch-action: none;
+  -webkit-touch-callout: none;
+  -webkit-user-select: none;
+  user-select: none;
 }
 
-.hardware-ptt-btn:disabled {
-  opacity: 0.4;
-  cursor: not-allowed;
+.hardware-ptt-btn:disabled,
+.hardware-ptt-btn.shift-locked {
+  opacity: 0.45;
   filter: grayscale(0.9);
 }
 
-.hardware-ptt-btn:active:not(:disabled),
+.hardware-ptt-btn:active:not(:disabled):not(.shift-locked),
 .hardware-ptt-btn.transmitting {
   transform: scale(0.95);
-  background: radial-gradient(circle at 45% 45%, #e53935 0%, #8e0000 100%);
+  background: radial-gradient(circle at 45% 45%, #e53935 0%, #8e0000 100%) !important;
   box-shadow: 
     0 4px 15px rgba(229, 57, 53, 0.6),
     inset 0 4px 12px rgba(0, 0, 0, 0.9),
-    0 0 0 6px #ff1744;
+    0 0 0 6px #ff1744 !important;
 }
 
 .ptt-knurled-ring {
