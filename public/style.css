@@ -814,9 +814,16 @@ body {
 }
 
 .tool-btn.active {
-  background: #c62828;
-  border-color: #ff5252;
-  box-shadow: 0 0 10px rgba(255, 82, 82, 0.4);
+  background: #c62828 !important;
+  border-color: #ff5252 !important;
+  box-shadow: 0 0 15px rgba(255, 82, 82, 0.7) !important;
+  color: #fff !important;
+}
+
+.tool-btn.shift-locked {
+  opacity: 0.35 !important;
+  cursor: not-allowed !important;
+  pointer-events: none !important;
 }
 
 /* Volume Slider */
