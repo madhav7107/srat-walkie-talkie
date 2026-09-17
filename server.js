@@ -104,20 +104,18 @@ const configPath = path.join(__dirname, 'staff_config.json');
 
 function loadConfig() {
   const defaultConfig = {
-    ownerSlots: [
-      { id: 'owner_1', label: 'Nimeeshbhai', pin: '3005' },
-      { id: 'owner_2', label: 'Kalpeshbhai', pin: '1111' },
-      { id: 'owner_3', label: 'Madhav', pin: '7107' }
-    ],
-    staffSlots: [
-      { id: 'staff_1', label: 'Sagarbhai', defaultName: 'Sagarbhai', pin: '0954' },
-      { id: 'staff_2', label: 'Devraj', defaultName: 'Devraj', pin: '1234' }
+    stations: [
+      { id: 'station_1', name: 'Nimeeshbhai', pin: '3005' },
+      { id: 'station_2', name: 'Kalpeshbhai', pin: '1111' },
+      { id: 'station_3', name: 'Madhav', pin: '7107' },
+      { id: 'station_4', name: 'Sagarbhai', pin: '0954' },
+      { id: 'station_5', name: 'Devraj', pin: '1234' }
     ]
   };
   try {
     if (fs.existsSync(configPath)) {
       const parsed = JSON.parse(fs.readFileSync(configPath, 'utf8'));
-      if (parsed && Array.isArray(parsed.ownerSlots) && Array.isArray(parsed.staffSlots) && parsed.staffSlots.length > 0) {
+      if (parsed && Array.isArray(parsed.stations) && parsed.stations.length > 0) {
         return parsed;
       }
     }
@@ -130,7 +128,7 @@ function saveConfig(cfg) {
   try {
     fs.writeFileSync(configPath, JSON.stringify(cfg, null, 2), 'utf8');
   } catch (e) {
-    console.error('Error saving staff config:', e);
+    console.error('Error saving stations config:', e);
   }
 }
 
@@ -145,21 +143,19 @@ function setupWebSocketServer(wss) {
   wss.on('connection', (ws) => {
     const clientData = {
       slot: null,
-      role: 'unknown',
+      role: 'user',
       name: 'Connecting...',
-      channel: 'all', // 'all' (Broadcast) or 'owners' (Private Owner Channel)
       isTalking: false
     };
     clients.set(ws, clientData);
 
-    // Send initial status with current owner & staff slots
+    // Send initial status with all stations
     ws.send(JSON.stringify({
       type: 'initial_state',
-      globalShiftActive,
-      globalShiftOwner,
+      globalShiftActive: true,
+      globalShiftOwner: 'System',
       activeSlots: getActiveSlots(),
-      ownerSlots: (serverConfig.ownerSlots || []).map(s => ({ id: s.id, label: s.label })),
-      staffSlots: (serverConfig.staffSlots || []).map(s => ({ id: s.id, label: s.label, defaultName: s.defaultName }))
+      stations: (serverConfig.stations || []).map(s => ({ id: s.id, name: s.name }))
     }));
 
     ws.isAlive = true;
@@ -167,19 +163,10 @@ function setupWebSocketServer(wss) {
 
     ws.on('message', (data, isBinary) => {
       if (isBinary) {
-        // High-speed binary voice broadcast ONLY IF shift is active
-        if (!globalShiftActive) return;
-        const isPrivate = clientData.role === 'owner' && clientData.channel === 'owners';
-        for (const [clientWs, targetData] of clients) {
+        // High-speed binary voice broadcast directly to all other connected stations
+        for (const [clientWs] of clients) {
           if (clientWs !== ws && clientWs.readyState === 1) { // 1 = OPEN
-            if (isPrivate) {
-              // Strictly Owners only in private channel
-              if (targetData.role === 'owner') {
-                clientWs.send(data, { binary: true });
-              }
-            } else {
-              clientWs.send(data, { binary: true });
-            }
+            clientWs.send(data, { binary: true });
           }
         }
       } else {
@@ -191,228 +178,62 @@ function setupWebSocketServer(wss) {
             const requestedSlot = msg.slot;
             const enteredPin = String(msg.pin || '').trim();
 
-            if (requestedSlot.startsWith('owner_')) {
-              const targetOwner = (serverConfig.ownerSlots || []).find(s => s.id === requestedSlot);
-              if (!targetOwner) {
-                ws.send(JSON.stringify({
-                  type: 'slot_error',
-                  message: 'Invalid Owner station.'
-                }));
-                return;
-              }
-              if (enteredPin !== String(targetOwner.pin)) {
-                ws.send(JSON.stringify({
-                  type: 'slot_error',
-                  message: `Incorrect Security PIN for ${targetOwner.label}. Please try again.`
-                }));
-                return;
-              }
-              clientData.role = 'owner';
-              clientData.slot = requestedSlot;
-              clientData.name = targetOwner.label;
-            } else if (requestedSlot.startsWith('staff_')) {
-              const targetStaff = (serverConfig.staffSlots || []).find(s => s.id === requestedSlot);
-              if (!targetStaff) {
-                ws.send(JSON.stringify({
-                  type: 'slot_error',
-                  message: 'This staff station is no longer active.'
-                }));
-                return;
-              }
-              if (targetStaff.pin && enteredPin !== String(targetStaff.pin)) {
-                ws.send(JSON.stringify({
-                  type: 'slot_error',
-                  message: `Incorrect Security PIN for ${targetStaff.label}. Please try again.`
-                }));
-                return;
-              }
-              clientData.role = 'staff';
-              clientData.slot = requestedSlot;
-              clientData.name = targetStaff.label;
-            } else {
+            const targetStation = (serverConfig.stations || []).find(s => s.id === requestedSlot);
+            if (!targetStation) {
               ws.send(JSON.stringify({
                 type: 'slot_error',
-                message: 'Invalid slot selection.'
+                message: 'Invalid station selection.'
               }));
               return;
             }
+
+            if (enteredPin !== String(targetStation.pin)) {
+              ws.send(JSON.stringify({
+                type: 'slot_error',
+                message: `Incorrect Security PIN for ${targetStation.name}. Please try again.`
+              }));
+              return;
+            }
+
+            clientData.slot = requestedSlot;
+            clientData.name = targetStation.name;
+            clientData.role = 'user';
 
             ws.send(JSON.stringify({
               type: 'slot_confirmed',
               slot: clientData.slot,
-              role: clientData.role,
               name: clientData.name,
-              globalShiftActive,
-              globalShiftOwner,
-              ownerSlots: (serverConfig.ownerSlots || []).map(s => ({ id: s.id, label: s.label })),
-              staffSlots: (serverConfig.staffSlots || []).map(s => ({ id: s.id, label: s.label, defaultName: s.defaultName }))
+              globalShiftActive: true,
+              stations: (serverConfig.stations || []).map(s => ({ id: s.id, name: s.name }))
             }));
 
             broadcastPresence();
-          } else if (msg.type === 'set_shift') {
-            // Only Owners can start or stop the shift
-            if (clientData.role !== 'owner') {
-              ws.send(JSON.stringify({
-                type: 'error',
-                message: 'Only Owners have permission to Start or Stop the shift.'
-              }));
-              return;
-            }
-
-            globalShiftActive = !!msg.active;
-            globalShiftOwner = clientData.name;
-
-            console.log(`[Shift] ${clientData.name} turned shift ${globalShiftActive ? 'ACTIVE (STARTED)' : 'STOPPED (OFF)'}`);
-
-            // Broadcast shift change to EVERYONE (All Owners and All Staff)
-            const shiftMsg = JSON.stringify({
-              type: 'shift_status',
-              active: globalShiftActive,
-              ownerName: globalShiftOwner
-            });
-
-            for (const [clientWs] of clients) {
-              if (clientWs.readyState === 1) {
-                clientWs.send(shiftMsg);
-              }
-            }
-          } else if (msg.type === 'set_channel') {
-            // Only Owners can switch to 'owners' private channel
-            if (clientData.role === 'owner') {
-              clientData.channel = (msg.channel === 'owners') ? 'owners' : 'all';
-              console.log(`[Channel] Owner ${clientData.name} switched channel to: ${clientData.channel}`);
-              ws.send(JSON.stringify({
-                type: 'channel_confirmed',
-                channel: clientData.channel
-              }));
-            }
           } else if (msg.type === 'talk_start') {
-            if (!globalShiftActive) return;
             clientData.isTalking = true;
-            const isPrivate = clientData.role === 'owner' && clientData.channel === 'owners';
-            const payload = {
+            broadcastToOthers(ws, {
               type: 'talk_start',
               senderName: clientData.name,
-              senderRole: clientData.role,
-              senderSlot: clientData.slot,
-              channel: clientData.channel || 'all'
-            };
-            if (isPrivate) {
-              // Send talk_start ONLY to other Owners
-              for (const [clientWs, targetData] of clients) {
-                if (clientWs !== ws && clientWs.readyState === 1 && targetData.role === 'owner') {
-                  clientWs.send(JSON.stringify(payload));
-                }
-              }
-            } else {
-              broadcastToOthers(ws, payload);
-            }
+              senderSlot: clientData.slot
+            });
           } else if (msg.type === 'talk_stop') {
             clientData.isTalking = false;
-            const isPrivate = clientData.role === 'owner' && clientData.channel === 'owners';
-            const payload = {
+            broadcastToOthers(ws, {
               type: 'talk_stop',
               senderName: clientData.name,
-              channel: clientData.channel || 'all'
-            };
-            if (isPrivate) {
-              // Send talk_stop ONLY to other Owners
-              for (const [clientWs, targetData] of clients) {
-                if (clientWs !== ws && clientWs.readyState === 1 && targetData.role === 'owner') {
-                  clientWs.send(JSON.stringify(payload));
-                }
-              }
-            } else {
-              broadcastToOthers(ws, payload);
-            }
-          } else if (msg.type === 'add_staff_slot') {
-            // Strictly Owner-only
-            if (clientData.role !== 'owner') {
-              ws.send(JSON.stringify({ type: 'settings_error', message: 'Unauthorized: Only Owners can manage staff.' }));
-              return;
-            }
-
-            const staffName = (msg.name || '').trim() || `Staff ${serverConfig.staffSlots.length + 1}`;
-            let maxIdNum = 0;
-            for (const s of serverConfig.staffSlots) {
-              const m = s.id.match(/^staff_(\d+)$/);
-              if (m) {
-                const n = parseInt(m[1], 10);
-                if (n > maxIdNum) maxIdNum = n;
-              }
-            }
-            const nextSlotId = `staff_${maxIdNum + 1}`;
-            const newSlot = {
-              id: nextSlotId,
-              label: `Staff ${maxIdNum + 1}`,
-              defaultName: staffName
-            };
-
-            serverConfig.staffSlots.push(newSlot);
-            saveConfig(serverConfig);
-
-            console.log(`[Settings] Owner ${clientData.name} added staff slot: ${newSlot.id} (${newSlot.defaultName})`);
-
-            broadcastToAll({
-              type: 'staff_slots_updated',
-              staffSlots: serverConfig.staffSlots
+              senderSlot: clientData.slot
             });
-            broadcastPresence();
-
-          } else if (msg.type === 'remove_staff_slot') {
-            // Strictly Owner-only
-            if (clientData.role !== 'owner') {
-              ws.send(JSON.stringify({ type: 'settings_error', message: 'Unauthorized: Only Owners can manage staff.' }));
-              return;
-            }
-
-            const slotToRemove = msg.slotId;
-            if (!slotToRemove || serverConfig.staffSlots.length <= 1) {
-              ws.send(JSON.stringify({ type: 'settings_error', message: 'At least one Staff slot must remain active.' }));
-              return;
-            }
-
-            serverConfig.staffSlots = serverConfig.staffSlots.filter(s => s.id !== slotToRemove);
-            saveConfig(serverConfig);
-
-            console.log(`[Settings] Owner ${clientData.name} removed staff slot: ${slotToRemove}`);
-
-            // Evict any client on that slot
-            for (const [cWs, cData] of clients) {
-              if (cData.slot === slotToRemove) {
-                cWs.send(JSON.stringify({
-                  type: 'slot_evicted',
-                  message: 'Your staff station was removed by Owner.'
-                }));
-                cData.slot = null;
-                cData.role = 'unknown';
-              }
-            }
-
-            broadcastToAll({
-              type: 'staff_slots_updated',
-              staffSlots: serverConfig.staffSlots
-            });
-            broadcastPresence();
-
-          } else if (msg.type === 'change_owner_pin') {
-            // Strictly Owner-only
-            if (clientData.role !== 'owner') {
-              ws.send(JSON.stringify({ type: 'settings_error', message: 'Unauthorized: Only Owners can change PIN.' }));
-              return;
-            }
-
+          } else if (msg.type === 'change_pin') {
             const newPin = String(msg.newPin || '').trim();
             if (!newPin || newPin.length < 4) {
               ws.send(JSON.stringify({ type: 'settings_error', message: 'Security PIN must be at least 4 digits.' }));
               return;
             }
 
-            const targetOwner = (serverConfig.ownerSlots || []).find(s => s.id === clientData.slot);
-            if (targetOwner) {
-              targetOwner.pin = newPin;
+            const targetStation = (serverConfig.stations || []).find(s => s.id === clientData.slot);
+            if (targetStation) {
+              targetStation.pin = newPin;
               saveConfig(serverConfig);
-              console.log(`[Settings] Owner ${clientData.name} updated their Security PIN.`);
+              console.log(`[Settings] Station ${clientData.name} updated their Security PIN.`);
               ws.send(JSON.stringify({
                 type: 'pin_change_success',
                 message: `Security PIN for ${clientData.name} updated successfully!`,
