@@ -128,15 +128,20 @@
     return st ? st.name : slotId;
   }
 
-  // Web Audio Contexts
+  // Web Audio Contexts & Speech Processing Pipeline
   let audioCtx = null;
   let micStream = null;
   let micSource = null;
   let scriptProcessor = null;
   let speakerGainNode = null;
+  let voiceCompressor = null;
+  let voiceBoostGain = null;
+  let voiceHighpassFilter = null;
+  let voicePresenceFilter = null;
   let nextPlayTime = 0;
   let liveStreamDest = null;
   let currentSpeakerName = '';
+  let currentSpeakerRole = 'staff';
 
   // ========================================================================
   // LOGIN SCREEN LOGIC
@@ -460,17 +465,42 @@
       nextPlayTime = 0; // Immediate zero-latency playback start
       currentSpeakerName = msg.senderName || 'Station';
       currentSpeakerSlot = msg.senderSlot || '';
+      currentSpeakerRole = msg.senderRole || (['station_1', 'station_2', 'station_3'].includes(msg.senderSlot) ? 'owner' : 'staff');
+      const isOwnerSpeaker = (currentSpeakerRole === 'owner');
 
       // Ensure audio context and background player are alive
       if (!audioCtx) initAudio();
       if (audioCtx && audioCtx.state === 'suspended') {
         audioCtx.resume();
       }
-      if (bgKeepAliveAudio.paused && isShiftActive) {
-        bgKeepAliveAudio.play().catch(() => {});
+
+      // 🔊 OWNER VOICE BOOST & AUTO-DUCKING OF SONGS/MUSIC:
+      if (isOwnerSpeaker) {
+        // Boost owner voice by 2.4x (+8 dB) through DynamicsCompressor
+        if (voiceBoostGain && audioCtx) {
+          voiceBoostGain.gain.setValueAtTime(2.4, audioCtx.currentTime);
+        }
+        // Force Android audio manager to duck background music players
+        if ('mediaSession' in navigator) {
+          navigator.mediaSession.playbackState = 'playing';
+        }
+        bgKeepAliveAudio.volume = 1.0;
+        if (bgKeepAliveAudio.paused && isShiftActive) {
+          bgKeepAliveAudio.play().catch(() => {});
+        }
+        // Play priority tone to alert worker and trigger transient ducking
+        playOwnerPriorityAlertTone();
+      } else {
+        // Normal staff voice
+        if (voiceBoostGain && audioCtx) {
+          voiceBoostGain.gain.setValueAtTime(1.1, audioCtx.currentTime);
+        }
+        if (bgKeepAliveAudio.paused && isShiftActive) {
+          bgKeepAliveAudio.play().catch(() => {});
+        }
+        playRemoteSquelch();
       }
 
-      playRemoteSquelch();
       antennaLed.className = 'antenna-tip tx';
       speakerRing.className = 'speaker-state-ring rx';
 
@@ -478,15 +508,17 @@
       if (isIncomingPrivate) {
         if (tacticalLcd) tacticalLcd.classList.add('channel-private');
         lcdSpeakerName.textContent = msg.senderName.toUpperCase();
-        lcdSpeakerRole.textContent = `🔒 [OWNER PRIVATE] TRANSMITTING...`;
+        lcdSpeakerRole.textContent = `🔒 [OWNER PRIVATE] 🔊 BOOST ACTIVE...`;
         lcdSpeakerRole.style.color = '#ffd54f';
-      } else {
-        if (currentChannel !== 'owners' && tacticalLcd) {
-          tacticalLcd.classList.remove('channel-private');
-        }
-        const roleBadge = (msg.senderRole === 'owner' || ['station_1', 'station_2', 'station_3'].includes(msg.senderSlot)) ? '👑 OWNER' : '📦 STAFF';
+      } else if (isOwnerSpeaker) {
+        if (tacticalLcd) tacticalLcd.classList.remove('channel-private');
         lcdSpeakerName.textContent = msg.senderName.toUpperCase();
-        lcdSpeakerRole.textContent = `🎙️ ${roleBadge} IS TRANSMITTING...`;
+        lcdSpeakerRole.textContent = `🎙️ 👑 OWNER (🔊 HIGH LOUD & CLEAR)...`;
+        lcdSpeakerRole.style.color = '#00e676';
+      } else {
+        if (tacticalLcd) tacticalLcd.classList.remove('channel-private');
+        lcdSpeakerName.textContent = msg.senderName.toUpperCase();
+        lcdSpeakerRole.textContent = `🎙️ 📦 STAFF TRANSMITTING...`;
         lcdSpeakerRole.style.color = '#00e676';
       }
 
@@ -494,7 +526,7 @@
       if (navigator.vibrate) navigator.vibrate([150, 80, 150]);
 
       // Pop-up mobile system notification if app is in background or phone locked
-      showBackgroundSpeakerNotification(msg.senderName, isIncomingPrivate ? 'Owner [PRIVATE]' : (msg.senderRole === 'owner' ? '👑 Owner' : '📦 Staff'));
+      showBackgroundSpeakerNotification(msg.senderName, isOwnerSpeaker ? '👑 Owner (Priority Voice)' : '📦 Staff');
       updateMediaSession();
       updatePersistentNotification();
 
@@ -502,6 +534,14 @@
     } else if (msg.type === 'talk_stop') {
       currentSpeakerName = '';
       currentSpeakerSlot = '';
+
+      // Reset voice boost and restore background music volume
+      if (voiceBoostGain && audioCtx) {
+        voiceBoostGain.gain.setValueAtTime(1.0, audioCtx.currentTime);
+      }
+      if ('mediaSession' in navigator) {
+        navigator.mediaSession.playbackState = 'paused';
+      }
 
       // Remote speaker ended -> Roger Beep
       playRogerBeep();
@@ -790,11 +830,45 @@
     if (!audioCtx) {
       const AudioContextClass = window.AudioContext || window.webkitAudioContext;
       audioCtx = new AudioContextClass({ sampleRate: 16000 });
+
+      // Master Speaker Gain
       speakerGainNode = audioCtx.createGain();
       speakerGainNode.gain.value = volumeSlider.value / 100;
+
+      // Dynamics Compressor & Speech Clarifier (Studio broadcast clarity & anti-clipping)
+      voiceCompressor = audioCtx.createDynamicsCompressor();
+      voiceCompressor.threshold.setValueAtTime(-15, audioCtx.currentTime);
+      voiceCompressor.knee.setValueAtTime(6, audioCtx.currentTime);
+      voiceCompressor.ratio.setValueAtTime(10, audioCtx.currentTime);
+      voiceCompressor.attack.setValueAtTime(0.003, audioCtx.currentTime);
+      voiceCompressor.release.setValueAtTime(0.15, audioCtx.currentTime);
+
+      // Highpass Filter (Cut low rumble below 160Hz for clean speech over background music)
+      voiceHighpassFilter = audioCtx.createBiquadFilter();
+      voiceHighpassFilter.type = 'highpass';
+      voiceHighpassFilter.frequency.setValueAtTime(160, audioCtx.currentTime);
+
+      // Presence Boost Filter (+5dB boost at 2.8kHz so speech punches through songs on Bluetooth)
+      voicePresenceFilter = audioCtx.createBiquadFilter();
+      voicePresenceFilter.type = 'peaking';
+      voicePresenceFilter.frequency.setValueAtTime(2800, audioCtx.currentTime);
+      voicePresenceFilter.gain.setValueAtTime(5.0, audioCtx.currentTime);
+      voicePresenceFilter.Q.setValueAtTime(1.2, audioCtx.currentTime);
+
+      // Voice Boost Node: 1.0x normal, 2.4x (+8dB boost) when Owners speak
+      voiceBoostGain = audioCtx.createGain();
+      voiceBoostGain.gain.value = 1.0;
+
+      // Connect Voice Processing Chain:
+      // source -> voiceBoostGain -> voiceHighpassFilter -> voicePresenceFilter -> voiceCompressor -> speakerGainNode -> destination
+      voiceBoostGain.connect(voiceHighpassFilter);
+      voiceHighpassFilter.connect(voicePresenceFilter);
+      voicePresenceFilter.connect(voiceCompressor);
+      voiceCompressor.connect(speakerGainNode);
       speakerGainNode.connect(audioCtx.destination);
 
       // Create live media stream destination to eliminate Android scrubber/seekbar dot
+      // and feed live incoming speech to HTML5 audio element for system audio ducking
       try {
         liveStreamDest = audioCtx.createMediaStreamDestination();
         const carrierOsc = audioCtx.createOscillator();
@@ -807,7 +881,9 @@
         carrierGain.connect(liveStreamDest);
         carrierOsc.start();
 
-        // Feed live stream into bgKeepAliveAudio element so Android recognizes live broadcast
+        // Feed compressed speech into live stream destination so <audio> tag plays it
+        voiceCompressor.connect(liveStreamDest);
+
         if ('srcObject' in bgKeepAliveAudio) {
           bgKeepAliveAudio.srcObject = liveStreamDest.stream;
           bgKeepAliveAudio.removeAttribute('src');
@@ -916,7 +992,11 @@
 
     const source = audioCtx.createBufferSource();
     source.buffer = audioBuffer;
-    source.connect(speakerGainNode);
+    if (voiceBoostGain) {
+      source.connect(voiceBoostGain);
+    } else {
+      source.connect(speakerGainNode);
+    }
 
     const now = audioCtx.currentTime;
     // Strict latency ceiling: if nextPlayTime falls behind OR drifts > 40ms ahead, clamp immediately!
@@ -1183,6 +1263,33 @@
     gain.connect(audioCtx.destination);
     osc.start();
     osc.stop(audioCtx.currentTime + 0.04);
+  }
+
+  function playOwnerPriorityAlertTone() {
+    if (!audioCtx) return;
+    const now = audioCtx.currentTime;
+
+    const osc1 = audioCtx.createOscillator();
+    const gain1 = audioCtx.createGain();
+    osc1.type = 'sine';
+    osc1.frequency.setValueAtTime(880, now);
+    gain1.gain.setValueAtTime(0.25, now);
+    gain1.gain.exponentialRampToValueAtTime(0.01, now + 0.06);
+    osc1.connect(gain1);
+    gain1.connect(audioCtx.destination);
+    osc1.start(now);
+    osc1.stop(now + 0.06);
+
+    const osc2 = audioCtx.createOscillator();
+    const gain2 = audioCtx.createGain();
+    osc2.type = 'sine';
+    osc2.frequency.setValueAtTime(1320, now + 0.07);
+    gain2.gain.setValueAtTime(0.28, now + 0.07);
+    gain2.gain.exponentialRampToValueAtTime(0.01, now + 0.15);
+    osc2.connect(gain2);
+    gain2.connect(audioCtx.destination);
+    osc2.start(now + 0.07);
+    osc2.stop(now + 0.15);
   }
 
   function playRogerBeep() {
