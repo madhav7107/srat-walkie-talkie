@@ -161,11 +161,13 @@ body {
 /* Slot Selection Pills */
 .slot-pills-row {
   display: flex;
+  flex-wrap: wrap;
   gap: 8px;
 }
 
 .slot-pill {
-  flex: 1;
+  flex: 1 1 calc(33.333% - 8px);
+  min-width: 90px;
   background: #161e29;
   border: 1px solid var(--border-dark);
   border-radius: 10px;
