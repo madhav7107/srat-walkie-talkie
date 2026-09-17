@@ -227,7 +227,7 @@
 
       <!-- Heavy-Duty Push-To-Talk Section -->
       <div class="ptt-assembly">
-        <button type="button" class="hardware-ptt-btn" id="pttButton" disabled>
+        <button type="button" class="hardware-ptt-btn" id="pttButton">
           <div class="ptt-knurled-ring">
             <div class="ptt-center-face">
               <span class="ptt-icon">🎙️</span>
@@ -324,6 +324,32 @@
 
       <div class="settings-footer">
         <button type="button" class="btn-settings-done" id="btnDoneSettings">✔ DONE</button>
+      </div>
+    </div>
+  <!-- Microphone Permission Request / Fix Modal -->
+  <div class="settings-modal-overlay" id="micModal" style="display: none;">
+    <div class="settings-modal-card" style="max-width: 400px; text-align: center;">
+      <div class="settings-modal-header" style="justify-content: center; border-bottom: 1px solid rgba(255,82,82,0.3);">
+        <div class="settings-modal-title" style="color: #ff5252;">
+          <span class="settings-title-icon">🎙️</span>
+          <span>MICROPHONE ACCESS REQUIRED</span>
+        </div>
+      </div>
+      <div style="padding: 16px 12px; font-size: 0.9rem; line-height: 1.5; color: #cfd8dc;">
+        <p style="font-weight: 700; color: #fff; margin-bottom: 12px; font-size: 1.05rem;">
+          માઇક્રોફોન પરમિશન Allow કરવી જરૂરી છે!
+        </p>
+        <div style="margin-bottom: 14px; font-size: 0.85rem; text-align: left; background: rgba(0,0,0,0.35); padding: 12px; border-radius: 8px; border-left: 4px solid #ff5252;">
+          <div style="margin-bottom: 8px;">1. ઉપર Chrome URL ની ડાબી બાજુ આવેલા <b>તાળા (🔒)</b> અથવા <b>Settings</b> આઇકોન પર ક્લિક કરો.</div>
+          <div style="margin-bottom: 8px;">2. <b>Permissions / Site settings</b> માં જઈ <b>Microphone</b> ને <b>Allow</b> કરો.</div>
+          <div>3. નીચે આપેલા <b>"ALLOW MICROPHONE"</b> બટન પર ક્લિક કરો.</div>
+        </div>
+        <button type="button" id="btnRequestMicAgain" style="width: 100%; padding: 14px; background: linear-gradient(135deg, #00e676, #00a152); border: none; border-radius: 8px; color: #000; font-weight: 800; font-size: 1rem; cursor: pointer;">
+          🎙️ ALLOW MICROPHONE & RETRY
+        </button>
+        <button type="button" id="btnCloseMicModal" style="background: transparent; border: none; color: #90a4ae; font-size: 0.85rem; margin-top: 12px; cursor: pointer; text-decoration: underline;">
+          Dismiss
+        </button>
       </div>
     </div>
   </div>
