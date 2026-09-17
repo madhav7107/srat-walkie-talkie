@@ -104,16 +104,20 @@ const configPath = path.join(__dirname, 'staff_config.json');
 
 function loadConfig() {
   const defaultConfig = {
-    ownerPin: '1234',
+    ownerSlots: [
+      { id: 'owner_1', label: 'Nimeeshbhai', pin: '3005' },
+      { id: 'owner_2', label: 'Kalpeshbhai', pin: '1111' },
+      { id: 'owner_3', label: 'Madhav', pin: '7107' }
+    ],
     staffSlots: [
-      { id: 'staff_1', label: 'Staff 1', defaultName: 'Staff 1' },
-      { id: 'staff_2', label: 'Staff 2', defaultName: 'Staff 2' }
+      { id: 'staff_1', label: 'Sagarbhai', defaultName: 'Sagarbhai', pin: '0954' },
+      { id: 'staff_2', label: 'Devraj', defaultName: 'Devraj', pin: '1234' }
     ]
   };
   try {
     if (fs.existsSync(configPath)) {
       const parsed = JSON.parse(fs.readFileSync(configPath, 'utf8'));
-      if (parsed && Array.isArray(parsed.staffSlots) && parsed.staffSlots.length > 0) {
+      if (parsed && Array.isArray(parsed.ownerSlots) && Array.isArray(parsed.staffSlots) && parsed.staffSlots.length > 0) {
         return parsed;
       }
     }
@@ -148,13 +152,14 @@ function setupWebSocketServer(wss) {
     };
     clients.set(ws, clientData);
 
-    // Send initial status with current staff slots
+    // Send initial status with current owner & staff slots
     ws.send(JSON.stringify({
       type: 'initial_state',
       globalShiftActive,
       globalShiftOwner,
       activeSlots: getActiveSlots(),
-      staffSlots: serverConfig.staffSlots
+      ownerSlots: (serverConfig.ownerSlots || []).map(s => ({ id: s.id, label: s.label })),
+      staffSlots: (serverConfig.staffSlots || []).map(s => ({ id: s.id, label: s.label, defaultName: s.defaultName }))
     }));
 
     ws.isAlive = true;
@@ -184,27 +189,46 @@ function setupWebSocketServer(wss) {
 
           if (msg.type === 'claim_slot') {
             const requestedSlot = msg.slot;
+            const enteredPin = String(msg.pin || '').trim();
 
-            // Check if Owner and verify PIN against serverConfig
             if (requestedSlot.startsWith('owner_')) {
-              if (msg.pin !== serverConfig.ownerPin) {
+              const targetOwner = (serverConfig.ownerSlots || []).find(s => s.id === requestedSlot);
+              if (!targetOwner) {
                 ws.send(JSON.stringify({
                   type: 'slot_error',
-                  message: 'Incorrect Owner PIN. Please enter the valid Owner PIN.'
+                  message: 'Invalid Owner station.'
+                }));
+                return;
+              }
+              if (enteredPin !== String(targetOwner.pin)) {
+                ws.send(JSON.stringify({
+                  type: 'slot_error',
+                  message: `Incorrect Security PIN for ${targetOwner.label}. Please try again.`
                 }));
                 return;
               }
               clientData.role = 'owner';
+              clientData.slot = requestedSlot;
+              clientData.name = targetOwner.label;
             } else if (requestedSlot.startsWith('staff_')) {
-              const validStaff = serverConfig.staffSlots.some(s => s.id === requestedSlot);
-              if (!validStaff) {
+              const targetStaff = (serverConfig.staffSlots || []).find(s => s.id === requestedSlot);
+              if (!targetStaff) {
                 ws.send(JSON.stringify({
                   type: 'slot_error',
                   message: 'This staff station is no longer active.'
                 }));
                 return;
               }
+              if (targetStaff.pin && enteredPin !== String(targetStaff.pin)) {
+                ws.send(JSON.stringify({
+                  type: 'slot_error',
+                  message: `Incorrect Security PIN for ${targetStaff.label}. Please try again.`
+                }));
+                return;
+              }
               clientData.role = 'staff';
+              clientData.slot = requestedSlot;
+              clientData.name = targetStaff.label;
             } else {
               ws.send(JSON.stringify({
                 type: 'slot_error',
@@ -213,9 +237,6 @@ function setupWebSocketServer(wss) {
               return;
             }
 
-            clientData.slot = requestedSlot;
-            clientData.name = msg.name || (clientData.role === 'owner' ? `Owner ${requestedSlot.slice(-1)}` : `Staff ${requestedSlot.slice(-1)}`);
-
             ws.send(JSON.stringify({
               type: 'slot_confirmed',
               slot: clientData.slot,
@@ -223,7 +244,8 @@ function setupWebSocketServer(wss) {
               name: clientData.name,
               globalShiftActive,
               globalShiftOwner,
-              staffSlots: serverConfig.staffSlots
+              ownerSlots: (serverConfig.ownerSlots || []).map(s => ({ id: s.id, label: s.label })),
+              staffSlots: (serverConfig.staffSlots || []).map(s => ({ id: s.id, label: s.label, defaultName: s.defaultName }))
             }));
 
             broadcastPresence();
@@ -382,18 +404,21 @@ function setupWebSocketServer(wss) {
 
             const newPin = String(msg.newPin || '').trim();
             if (!newPin || newPin.length < 4) {
-              ws.send(JSON.stringify({ type: 'settings_error', message: 'Owner PIN must be at least 4 digits.' }));
+              ws.send(JSON.stringify({ type: 'settings_error', message: 'Security PIN must be at least 4 digits.' }));
               return;
             }
 
-            serverConfig.ownerPin = newPin;
-            saveConfig(serverConfig);
-            console.log(`[Settings] Owner ${clientData.name} updated the Owner Security PIN.`);
-
-            ws.send(JSON.stringify({
-              type: 'pin_change_success',
-              message: 'Owner Security PIN successfully updated!'
-            }));
+            const targetOwner = (serverConfig.ownerSlots || []).find(s => s.id === clientData.slot);
+            if (targetOwner) {
+              targetOwner.pin = newPin;
+              saveConfig(serverConfig);
+              console.log(`[Settings] Owner ${clientData.name} updated their Security PIN.`);
+              ws.send(JSON.stringify({
+                type: 'pin_change_success',
+                message: `Security PIN for ${clientData.name} updated successfully!`,
+                newPin: newPin
+              }));
+            }
           }
         } catch (e) {
           console.error('Signaling error:', e);
