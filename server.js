@@ -132,8 +132,8 @@ function saveConfig(cfg) {
 
 let serverConfig = loadConfig();
 
-let globalShiftActive = false;
-let globalShiftOwner = '';
+let globalShiftActive = true;
+let globalShiftOwner = 'System';
 
 const clients = new Map(); // ws -> { slot, role, name, isTalking }
 
