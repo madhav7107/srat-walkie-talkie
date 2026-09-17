@@ -19,6 +19,7 @@
   const antennaLed = document.getElementById('antennaLed');
 
   // Master Shift Elements
+  const masterShiftBar = document.getElementById('masterShiftBar');
   const shiftStateLed = document.getElementById('shiftStateLed');
   const shiftTitle = document.getElementById('shiftTitle');
   const shiftSub = document.getElementById('shiftSub');
@@ -51,6 +52,7 @@
   const btnDoneSettings = document.getElementById('btnDoneSettings');
   const settingsStaffList = document.getElementById('settingsStaffList');
   const newStaffNameInput = document.getElementById('newStaffNameInput');
+  const newStaffPinInput = document.getElementById('newStaffPinInput');
   const btnAddStaff = document.getElementById('btnAddStaff');
   const newOwnerPinInput = document.getElementById('newOwnerPinInput');
   const btnSaveNewPin = document.getElementById('btnSaveNewPin');
@@ -219,21 +221,31 @@
     loginScreen.style.display = 'none';
     radioScreen.style.display = 'block';
 
-    badgeIcon.textContent = '📻';
-    badgeText.textContent = `STATION: ${myName.toUpperCase()}`;
+    const isOwner = myRole === 'owner' || ['station_1', 'station_2', 'station_3'].includes(mySlot);
+    badgeIcon.textContent = isOwner ? '👑' : '📦';
+    badgeText.textContent = `${isOwner ? 'OWNER' : 'STAFF'}: ${myName.toUpperCase()}`;
 
-    if (btnMasterShift) btnMasterShift.style.display = 'none';
-    if (staffShiftStatus) staffShiftStatus.style.display = 'none';
-    if (btnOwnerSettings) btnOwnerSettings.style.display = 'none';
+    if (btnMasterShift) btnMasterShift.style.display = isOwner ? 'block' : 'none';
+    if (staffShiftStatus) staffShiftStatus.style.display = isOwner ? 'none' : 'block';
+    if (btnOwnerSettings) btnOwnerSettings.style.display = isOwner ? 'block' : 'none';
     if (ownerChannelBar) ownerChannelBar.style.display = 'none';
+    if (masterShiftBar) masterShiftBar.style.display = 'flex';
     if (lcdChannelLabel) lcdChannelLabel.textContent = 'CH-01 [WAREHOUSE & OFFICE BROADCAST]';
-    lcdSpeakerRole.textContent = 'STANDBY (Channel Open)';
-    lcdSpeakerRole.style.color = '#00a152';
 
-    // Activate shift, audio, wake lock
-    isShiftActive = true;
-    if (pttButton) pttButton.classList.remove('shift-locked');
-    if (btnLockMic) btnLockMic.classList.remove('shift-locked');
+    if (isShiftActive) {
+      lcdSpeakerRole.textContent = 'STANDBY (Channel Open)';
+      lcdSpeakerRole.style.color = '#00a152';
+      if (pttButton) pttButton.classList.remove('shift-locked');
+      if (btnLockMic) btnLockMic.classList.remove('shift-locked');
+    } else {
+      lcdSpeakerRole.textContent = 'STANDBY (Shift Stopped)';
+      lcdSpeakerRole.style.color = '#ffd54f';
+      if (!isOwner) {
+        if (pttButton) pttButton.classList.add('shift-locked');
+        if (btnLockMic) btnLockMic.classList.add('shift-locked');
+      }
+    }
+
     initAudio();
     enableBackgroundAudio();
     requestWakeLock();
@@ -261,12 +273,12 @@
   });
 
   // Check saved session on startup
-  if (localStorage.getItem('walkie_app_ver') !== 'v7') {
+  if (localStorage.getItem('walkie_app_ver') !== 'v8') {
     localStorage.removeItem('walkie_logged_in');
     localStorage.removeItem('walkie_role');
     localStorage.removeItem('walkie_slot');
     localStorage.removeItem('walkie_name');
-    localStorage.setItem('walkie_app_ver', 'v7');
+    localStorage.setItem('walkie_app_ver', 'v8');
     if ('caches' in window) {
       caches.keys().then(keys => {
         keys.forEach(k => caches.delete(k));
@@ -355,15 +367,26 @@
       currentActiveSlots = msg.activeSlots || {};
       renderRoster();
       updatePinPlaceholder();
+      syncShiftState(msg.globalShiftActive, msg.globalShiftOwner);
+    } else if (msg.type === 'stations_updated') {
+      if (Array.isArray(msg.stations)) {
+        availableStations = msg.stations;
+        renderStationPills();
+        renderRoster();
+        if (settingsModal && settingsModal.style.display === 'flex') {
+          renderSettingsStaffList();
+        }
+      }
     } else if (msg.type === 'slot_confirmed') {
       mySlot = msg.slot;
       myName = msg.name;
-      myRole = 'user';
+      myRole = msg.role || (['station_1', 'station_2', 'station_3'].includes(mySlot) ? 'owner' : 'staff');
       isLoggedIn = true;
 
       localStorage.setItem('walkie_logged_in', 'true');
       localStorage.setItem('walkie_slot', mySlot);
       localStorage.setItem('walkie_name', myName);
+      localStorage.setItem('walkie_role', myRole);
       if (loginPinInput.value) {
         localStorage.setItem('walkie_pin', loginPinInput.value.trim());
       }
@@ -375,10 +398,8 @@
         renderStationPills();
       }
 
-      badgeIcon.textContent = '📻';
-      badgeText.textContent = `STATION: ${myName.toUpperCase()}`;
-
       renderRoster();
+      syncShiftState(msg.globalShiftActive, msg.globalShiftOwner);
     } else if (msg.type === 'slot_error') {
       alert(msg.message);
       isLoggedIn = false;
@@ -389,15 +410,25 @@
         loginPinInput.value = '';
         loginPinInput.focus();
       }
+    } else if (msg.type === 'slot_evicted') {
+      alert(msg.message || 'Your station has been removed by the Owners.');
+      btnLogout.click();
     } else if (msg.type === 'pin_change_success') {
-      localStorage.setItem('walkie_pin', msg.newPin);
-      alert('Security PIN updated successfully! Keep your new PIN safe.');
+      alert(msg.message || 'Security PIN updated successfully!');
       if (newOwnerPinInput) newOwnerPinInput.value = '';
     } else if (msg.type === 'settings_error') {
-      alert('Settings Error: ' + (msg.message || 'Action failed'));
+      alert('Settings Notice: ' + (msg.message || 'Action failed'));
+    } else if (msg.type === 'shift_status') {
+      syncShiftState(msg.active, msg.ownerName);
+    } else if (msg.type === 'shift_blocked') {
+      alert(msg.message);
+      if (isTransmitting) stopTransmitting();
     } else if (msg.type === 'presence') {
       currentActiveSlots = msg.activeSlots || {};
       renderRoster();
+      if (settingsModal && settingsModal.style.display === 'flex') {
+        renderSettingsStaffList();
+      }
     } else if (msg.type === 'talk_start') {
       nextPlayTime = 0; // Immediate zero-latency playback start
       currentSpeakerName = msg.senderName || 'Station';
@@ -408,7 +439,7 @@
       if (audioCtx && audioCtx.state === 'suspended') {
         audioCtx.resume();
       }
-      if (bgKeepAliveAudio.paused) {
+      if (bgKeepAliveAudio.paused && isShiftActive) {
         bgKeepAliveAudio.play().catch(() => {});
       }
 
@@ -416,15 +447,16 @@
       antennaLed.className = 'antenna-tip tx';
       speakerRing.className = 'speaker-state-ring rx';
 
+      const roleBadge = (msg.senderRole === 'owner' || ['station_1', 'station_2', 'station_3'].includes(msg.senderSlot)) ? '👑 OWNER' : '📦 STAFF';
       lcdSpeakerName.textContent = msg.senderName.toUpperCase();
-      lcdSpeakerRole.textContent = `🎙️ ${msg.senderName.toUpperCase()} IS TRANSMITTING...`;
+      lcdSpeakerRole.textContent = `🎙️ ${roleBadge} IS TRANSMITTING...`;
       lcdSpeakerRole.style.color = '#00e676';
 
       // Vibrate mobile device (in pocket)
       if (navigator.vibrate) navigator.vibrate([150, 80, 150]);
 
       // Pop-up mobile system notification if app is in background or phone locked
-      showBackgroundSpeakerNotification(msg.senderName, 'Station');
+      showBackgroundSpeakerNotification(msg.senderName, roleBadge);
       updateMediaSession();
       updatePersistentNotification();
 
@@ -439,8 +471,8 @@
       speakerRing.className = 'speaker-state-ring';
 
       lcdSpeakerName.textContent = 'NOBODY SPEAKING';
-      lcdSpeakerRole.textContent = 'STANDBY (Channel Open)';
-      lcdSpeakerRole.style.color = '#00a152';
+      lcdSpeakerRole.textContent = isShiftActive ? 'STANDBY (Channel Open)' : 'STANDBY (Shift Stopped)';
+      lcdSpeakerRole.style.color = isShiftActive ? '#00a152' : '#ffd54f';
 
       renderRoster();
       clearVUMeter();
@@ -459,7 +491,8 @@
       if (isOnline) count++;
       const isTalking = currentSpeakerSlot === slot.id;
       const tag = slot.name.charAt(0).toUpperCase();
-      html += `<div class="roster-item ${isOnline ? 'online' : ''} ${isTalking ? 'talking' : ''}" id="roster_${slot.id}" title="${isOnline ? `${currentActiveSlots[slot.id].name}` : slot.name}"><span>${tag}</span></div>`;
+      const isOwner = slot.role === 'owner' || ['station_1', 'station_2', 'station_3'].includes(slot.id);
+      html += `<div class="roster-item ${isOnline ? 'online' : ''} ${isTalking ? 'talking' : ''} ${isOwner ? 'owner-dot' : ''}" id="roster_${slot.id}" title="${isOnline ? `${currentActiveSlots[slot.id].name} (${isOwner ? 'Owner' : 'Staff'})` : `${slot.name} (${isOwner ? 'Owner' : 'Staff'})`}"><span>${tag}</span></div>`;
     });
 
     rosterDots.innerHTML = html;
@@ -474,12 +507,7 @@
     if (!settingsStaffList) return;
     settingsStaffList.innerHTML = '';
 
-    if (availableStaffSlots.length === 0) {
-      settingsStaffList.innerHTML = '<div style="color:#a0aec0;font-size:12px;padding:8px 0;">No staff stations configured.</div>';
-      return;
-    }
-
-    availableStaffSlots.forEach((slot, idx) => {
+    availableStations.forEach((slot, idx) => {
       const item = document.createElement('div');
       item.className = 'staff-manager-item';
 
@@ -487,39 +515,62 @@
       const isOnline = !!activeInfo;
       const statusClass = isOnline ? 'online' : 'offline';
       const statusText = isOnline ? `ONLINE (${activeInfo.name})` : 'OFFLINE';
+      const isOwnerSlot = slot.role === 'owner' || ['station_1', 'station_2', 'station_3'].includes(slot.id);
+      const roleBadge = isOwnerSlot ? '👑 OWNER' : '📦 STAFF';
+      const pinDisplay = slot.pin ? ` • PIN: <b style="color:#fff;">${slot.pin}</b>` : '';
 
       item.innerHTML = `
-        <div class="staff-info-col">
+        <div class="staff-info-col" style="flex: 1;">
           <div class="staff-main-name">
             <span class="staff-num-tag">#${idx + 1}</span>
-            <strong>${slot.label}</strong> ${slot.defaultName && slot.defaultName !== slot.label ? `<span class="staff-sub-name">(${slot.defaultName})</span>` : ''}
+            <strong>${slot.name}</strong> <span style="font-size:11px;color:${isOwnerSlot ? '#ffd54f' : '#81c784'};font-weight:700;">[${roleBadge}]</span>
+            <span style="font-size:11px;color:#a0aec0;margin-left:6px;">${pinDisplay}</span>
           </div>
           <div class="staff-status-badge ${statusClass}">
             <span class="status-dot"></span>
             <span>${statusText}</span>
           </div>
         </div>
-        <button type="button" class="btn-remove-staff" data-slot="${slot.id}" title="Remove Staff Station" ${availableStaffSlots.length <= 1 ? 'disabled style="opacity:0.3;cursor:not-allowed;"' : ''}>
-          🗑️
-        </button>
+        <div style="display:flex; gap:6px; align-items:center;">
+          <button type="button" class="btn-edit-pin" data-slot="${slot.id}" data-name="${slot.name}" title="Change PIN" style="background:#2a364f; border:1px solid #3d4d6b; color:#fff; padding:6px 10px; border-radius:6px; cursor:pointer; font-size:12px;">
+            🔑 PIN
+          </button>
+          ${!isOwnerSlot ? `
+            <button type="button" class="btn-remove-staff" data-slot="${slot.id}" data-name="${slot.name}" title="Remove Person" style="background:#4a1e1e; border:1px solid #7f2323; color:#ff5252; padding:6px 10px; border-radius:6px; cursor:pointer; font-size:12px;">
+              🗑️
+            </button>
+          ` : ''}
+        </div>
       `;
 
+      const editPinBtn = item.querySelector('.btn-edit-pin');
+      if (editPinBtn) {
+        editPinBtn.addEventListener('click', () => {
+          const newPin = prompt(`Enter new 4-8 digit Security PIN for ${slot.name}:`, slot.pin || '');
+          if (newPin && newPin.trim().length >= 4) {
+            ws.send(JSON.stringify({
+              type: 'change_pin',
+              stationId: slot.id,
+              newPin: newPin.trim()
+            }));
+          } else if (newPin !== null) {
+            alert('Security PIN must be at least 4 digits.');
+          }
+        });
+      }
+
       const removeBtn = item.querySelector('.btn-remove-staff');
-      removeBtn.addEventListener('click', () => {
-        if (availableStaffSlots.length <= 1) {
-          alert('At least 1 Godown Staff station must remain in the system.');
-          return;
-        }
-        const confirmed = confirm(`Are you sure you want to remove ${slot.label}? Any staff currently logged in on this station will be disconnected.`);
-        if (confirmed) {
-          const pin = localStorage.getItem('walkie_pin') || '1234';
-          ws.send(JSON.stringify({
-            type: 'remove_staff_slot',
-            slotId: slot.id,
-            pin: pin
-          }));
-        }
-      });
+      if (removeBtn) {
+        removeBtn.addEventListener('click', () => {
+          const confirmed = confirm(`Are you sure you want to remove ${slot.name}? Any worker currently connected will be logged out.`);
+          if (confirmed) {
+            ws.send(JSON.stringify({
+              type: 'remove_station',
+              stationId: slot.id
+            }));
+          }
+        });
+      }
 
       settingsStaffList.appendChild(item);
     });
@@ -529,8 +580,9 @@
   if (btnOwnerSettings) {
     btnOwnerSettings.addEventListener('click', () => {
       renderSettingsStaffList();
-      newStaffNameInput.value = '';
-      newOwnerPinInput.value = '';
+      if (newStaffNameInput) newStaffNameInput.value = '';
+      if (newStaffPinInput) newStaffPinInput.value = '';
+      if (newOwnerPinInput) newOwnerPinInput.value = '';
       settingsModal.style.display = 'flex';
     });
   }
@@ -557,18 +609,29 @@
 
   if (btnAddStaff) {
     btnAddStaff.addEventListener('click', () => {
-      const name = newStaffNameInput.value.trim();
-      const pin = localStorage.getItem('walkie_pin') || '1234';
+      const name = newStaffNameInput ? newStaffNameInput.value.trim() : '';
+      const pin = newStaffPinInput ? newStaffPinInput.value.trim() : '';
+      if (!name) {
+        alert('Please enter person name (e.g. Ramesh).');
+        if (newStaffNameInput) newStaffNameInput.focus();
+        return;
+      }
+      if (!pin || pin.length < 4) {
+        alert('Please enter a 4-8 digit Security PIN.');
+        if (newStaffPinInput) newStaffPinInput.focus();
+        return;
+      }
       if (!ws || ws.readyState !== WebSocket.OPEN) {
         alert('Not connected to server.');
         return;
       }
       ws.send(JSON.stringify({
-        type: 'add_staff_slot',
-        name: name || undefined,
+        type: 'add_station',
+        name: name,
         pin: pin
       }));
-      newStaffNameInput.value = '';
+      if (newStaffNameInput) newStaffNameInput.value = '';
+      if (newStaffPinInput) newStaffPinInput.value = '';
     });
   }
 
@@ -576,20 +639,20 @@
     btnSaveNewPin.addEventListener('click', () => {
       const newPin = newOwnerPinInput.value.trim();
       if (!newPin || newPin.length < 4) {
-        alert('Security PIN must be at least 4 digits/characters.');
+        alert('Security PIN must be at least 4 digits.');
         newOwnerPinInput.focus();
         return;
       }
-      const oldPin = localStorage.getItem('walkie_pin') || '1234';
       if (!ws || ws.readyState !== WebSocket.OPEN) {
         alert('Not connected to server.');
         return;
       }
       ws.send(JSON.stringify({
-        type: 'change_owner_pin',
-        oldPin: oldPin,
+        type: 'change_pin',
+        stationId: mySlot,
         newPin: newPin
       }));
+      newOwnerPinInput.value = '';
     });
   }
 
@@ -597,18 +660,56 @@
   // MASTER SHIFT SYNCHRONIZATION
   // ========================================================================
 
-  async function syncShiftState() {
-    isShiftActive = true;
-    if (shiftStateLed) shiftStateLed.className = 'shift-state-indicator active';
-    if (shiftTitle) shiftTitle.textContent = 'BROADCAST ACTIVE';
-    if (shiftSub) shiftSub.textContent = 'Channel Open • Ready to Talk';
+  async function syncShiftState(active, ownerName) {
+    isShiftActive = active !== false;
 
-    if (pttButton) pttButton.classList.remove('shift-locked');
-    if (btnLockMic) btnLockMic.classList.remove('shift-locked');
+    if (isShiftActive) {
+      if (shiftStateLed) shiftStateLed.className = 'shift-state-indicator active';
+      if (shiftTitle) shiftTitle.textContent = 'SHIFT LIVE // RECORDING';
+      if (shiftSub) shiftSub.textContent = 'Started by Owners • Broadcasting Open';
 
-    initAudio();
-    enableBackgroundAudio();
-    requestWakeLock();
+      if (btnMasterShift) {
+        btnMasterShift.classList.remove('start');
+        btnMasterShift.classList.add('stop');
+        btnMasterShift.textContent = 'STOP SHIFT';
+      }
+      if (staffShiftStatus) {
+        staffShiftStatus.className = 'staff-shift-status active';
+        staffShiftStatus.textContent = 'ONLINE';
+      }
+
+      if (pttButton) pttButton.classList.remove('shift-locked');
+      if (btnLockMic) btnLockMic.classList.remove('shift-locked');
+
+      initAudio();
+      try {
+        await requestMicrophone();
+      } catch (e) {}
+      enableBackgroundAudio();
+      requestWakeLock();
+    } else {
+      if (isTransmitting) stopTransmitting();
+
+      if (shiftStateLed) shiftStateLed.className = 'shift-state-indicator';
+      if (shiftTitle) shiftTitle.textContent = 'SHIFT STOPPED';
+      if (shiftSub) shiftSub.textContent = 'Ended by Owners • Standby';
+
+      if (btnMasterShift) {
+        btnMasterShift.classList.remove('stop');
+        btnMasterShift.classList.add('start');
+        btnMasterShift.textContent = 'START SHIFT';
+      }
+      if (staffShiftStatus) {
+        staffShiftStatus.className = 'staff-shift-status off';
+        staffShiftStatus.textContent = 'LOCKED';
+      }
+
+      const isOwner = myRole === 'owner' || ['station_1', 'station_2', 'station_3'].includes(mySlot);
+      if (!isOwner) {
+        if (pttButton) pttButton.classList.add('shift-locked');
+        if (btnLockMic) btnLockMic.classList.add('shift-locked');
+      }
+    }
   }
 
   function stopShiftLocally() {
@@ -620,7 +721,18 @@
 
   if (btnMasterShift) {
     btnMasterShift.addEventListener('click', () => {
-      // Shift toggle disabled in unified mode
+      const isOwner = myRole === 'owner' || ['station_1', 'station_2', 'station_3'].includes(mySlot);
+      if (!isOwner) {
+        alert('Only Owners (Nimeeshbhai, Kalpeshbhai, Madhav) can control the shift.');
+        return;
+      }
+      const nextState = !isShiftActive;
+      if (ws && ws.readyState === WebSocket.OPEN) {
+        ws.send(JSON.stringify({
+          type: 'set_shift',
+          active: nextState
+        }));
+      }
     });
   }
 
@@ -820,6 +932,20 @@
 
   async function startTransmitting(e) {
     if (e && e.cancelable) e.preventDefault();
+
+    const isOwner = myRole === 'owner' || ['station_1', 'station_2', 'station_3'].includes(mySlot);
+    if (!isShiftActive) {
+      if (isOwner) {
+        const wantStart = confirm('⚠️ SHIFT IS CURRENTLY STOPPED.\n\nTap OK to START SHIFT and open broadcast for all stations.');
+        if (wantStart && ws && ws.readyState === WebSocket.OPEN) {
+          ws.send(JSON.stringify({ type: 'set_shift', active: true }));
+        }
+      } else {
+        alert('⚠️ SHIFT IS STOPPED!\n\nOwners need to start the shift before staff can speak.\nPlease ask the Owners to start the shift.');
+      }
+      return;
+    }
+
     if (isTransmitting) return;
 
     if (audioCtx && audioCtx.state === 'suspended') {
@@ -874,8 +1000,8 @@
     pttStatusText.textContent = 'HOLD TO TALK';
 
     lcdSpeakerName.textContent = 'NOBODY SPEAKING';
-    lcdSpeakerRole.textContent = 'STANDBY (Channel Open)';
-    lcdSpeakerRole.style.color = '#00a152';
+    lcdSpeakerRole.textContent = isShiftActive ? 'STANDBY (Channel Open)' : 'STANDBY (Shift Stopped)';
+    lcdSpeakerRole.style.color = isShiftActive ? '#00a152' : '#ffd54f';
     clearVUMeter();
 
     if (navigator.vibrate) navigator.vibrate([20]);
@@ -893,6 +1019,19 @@
 
   // Hands-Free Lock Mic
   btnLockMic.addEventListener('click', () => {
+    const isOwner = myRole === 'owner' || ['station_1', 'station_2', 'station_3'].includes(mySlot);
+    if (!isShiftActive) {
+      if (isOwner) {
+        const wantStart = confirm('⚠️ SHIFT IS CURRENTLY STOPPED.\n\nTap OK to START SHIFT and open broadcast for all stations.');
+        if (wantStart && ws && ws.readyState === WebSocket.OPEN) {
+          ws.send(JSON.stringify({ type: 'set_shift', active: true }));
+        }
+      } else {
+        alert('⚠️ SHIFT IS STOPPED!\n\nOwners need to start the shift before staff can speak.\nPlease ask the Owners to start the shift.');
+      }
+      return;
+    }
+
     isMicLocked = !isMicLocked;
     if (isMicLocked) {
       btnLockMic.classList.add('active');
