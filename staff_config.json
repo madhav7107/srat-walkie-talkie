@@ -4,6 +4,6 @@
     { "id": "station_2", "name": "Kalpeshbhai", "pin": "1111", "role": "owner" },
     { "id": "station_3", "name": "Madhav", "pin": "7107", "role": "owner" },
     { "id": "station_4", "name": "Sagarbhai", "pin": "0954", "role": "staff" },
-    { "id": "station_5", "name": "Devraj", "pin": "1234", "role": "staff" }
+    { "id": "station_5", "name": "Devraj", "pin": "1204", "role": "staff" }
   ]
 }
