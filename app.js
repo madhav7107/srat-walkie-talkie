@@ -228,13 +228,13 @@
     if (btnMasterShift) btnMasterShift.style.display = isOwner ? 'block' : 'none';
     if (staffShiftStatus) staffShiftStatus.style.display = isOwner ? 'none' : 'block';
     if (btnOwnerSettings) btnOwnerSettings.style.display = isOwner ? 'block' : 'none';
-    if (ownerChannelBar) ownerChannelBar.style.display = 'none';
+    if (ownerChannelBar) ownerChannelBar.style.display = isOwner ? 'flex' : 'none';
     if (masterShiftBar) masterShiftBar.style.display = 'flex';
-    if (lcdChannelLabel) lcdChannelLabel.textContent = 'CH-01 [WAREHOUSE & OFFICE BROADCAST]';
+    if (lcdChannelLabel) lcdChannelLabel.textContent = currentChannel === 'owners' ? 'CH-02 [🔒 OWNERS PRIVATE]' : 'CH-01 [WAREHOUSE + OFFICE]';
 
     if (isShiftActive) {
-      lcdSpeakerRole.textContent = 'STANDBY (Channel Open)';
-      lcdSpeakerRole.style.color = '#00a152';
+      lcdSpeakerRole.textContent = currentChannel === 'owners' ? 'STANDBY (Owner Private)' : 'STANDBY (Channel Open)';
+      lcdSpeakerRole.style.color = currentChannel === 'owners' ? '#ffd54f' : '#00a152';
       if (pttButton) pttButton.classList.remove('shift-locked');
       if (btnLockMic) btnLockMic.classList.remove('shift-locked');
     } else {
@@ -249,6 +249,33 @@
     initAudio();
     enableBackgroundAudio();
     requestWakeLock();
+  }
+
+  function setChannel(ch) {
+    const isOwner = myRole === 'owner' || ['station_1', 'station_2', 'station_3'].includes(mySlot);
+    if (!isOwner) return;
+
+    currentChannel = ch;
+    if (btnChAll) btnChAll.classList.toggle('active', ch === 'all');
+    if (btnChOwners) btnChOwners.classList.toggle('active', ch === 'owners');
+
+    if (ch === 'owners') {
+      if (tacticalLcd) tacticalLcd.classList.add('channel-private');
+      if (lcdChannelLabel) lcdChannelLabel.textContent = 'CH-02 [🔒 OWNERS PRIVATE]';
+      if (!isTransmitting) {
+        lcdSpeakerName.textContent = 'NOBODY SPEAKING';
+        lcdSpeakerRole.textContent = 'STANDBY (Owner Private)';
+        lcdSpeakerRole.style.color = '#ffd54f';
+      }
+    } else {
+      if (tacticalLcd) tacticalLcd.classList.remove('channel-private');
+      if (lcdChannelLabel) lcdChannelLabel.textContent = 'CH-01 [WAREHOUSE + OFFICE]';
+      if (!isTransmitting) {
+        lcdSpeakerName.textContent = 'NOBODY SPEAKING';
+        lcdSpeakerRole.textContent = isShiftActive ? 'STANDBY (Channel Open)' : 'STANDBY (Shift Stopped)';
+        lcdSpeakerRole.style.color = isShiftActive ? '#00a152' : '#ffd54f';
+      }
+    }
   }
 
   if (btnChAll) {
@@ -273,12 +300,12 @@
   });
 
   // Check saved session on startup
-  if (localStorage.getItem('walkie_app_ver') !== 'v8') {
+  if (localStorage.getItem('walkie_app_ver') !== 'v9') {
     localStorage.removeItem('walkie_logged_in');
     localStorage.removeItem('walkie_role');
     localStorage.removeItem('walkie_slot');
     localStorage.removeItem('walkie_name');
-    localStorage.setItem('walkie_app_ver', 'v8');
+    localStorage.setItem('walkie_app_ver', 'v9');
     if ('caches' in window) {
       caches.keys().then(keys => {
         keys.forEach(k => caches.delete(k));
@@ -447,16 +474,27 @@
       antennaLed.className = 'antenna-tip tx';
       speakerRing.className = 'speaker-state-ring rx';
 
-      const roleBadge = (msg.senderRole === 'owner' || ['station_1', 'station_2', 'station_3'].includes(msg.senderSlot)) ? '👑 OWNER' : '📦 STAFF';
-      lcdSpeakerName.textContent = msg.senderName.toUpperCase();
-      lcdSpeakerRole.textContent = `🎙️ ${roleBadge} IS TRANSMITTING...`;
-      lcdSpeakerRole.style.color = '#00e676';
+      const isIncomingPrivate = msg.channel === 'owners';
+      if (isIncomingPrivate) {
+        if (tacticalLcd) tacticalLcd.classList.add('channel-private');
+        lcdSpeakerName.textContent = msg.senderName.toUpperCase();
+        lcdSpeakerRole.textContent = `🔒 [OWNER PRIVATE] TRANSMITTING...`;
+        lcdSpeakerRole.style.color = '#ffd54f';
+      } else {
+        if (currentChannel !== 'owners' && tacticalLcd) {
+          tacticalLcd.classList.remove('channel-private');
+        }
+        const roleBadge = (msg.senderRole === 'owner' || ['station_1', 'station_2', 'station_3'].includes(msg.senderSlot)) ? '👑 OWNER' : '📦 STAFF';
+        lcdSpeakerName.textContent = msg.senderName.toUpperCase();
+        lcdSpeakerRole.textContent = `🎙️ ${roleBadge} IS TRANSMITTING...`;
+        lcdSpeakerRole.style.color = '#00e676';
+      }
 
       // Vibrate mobile device (in pocket)
       if (navigator.vibrate) navigator.vibrate([150, 80, 150]);
 
       // Pop-up mobile system notification if app is in background or phone locked
-      showBackgroundSpeakerNotification(msg.senderName, roleBadge);
+      showBackgroundSpeakerNotification(msg.senderName, isIncomingPrivate ? 'Owner [PRIVATE]' : (msg.senderRole === 'owner' ? '👑 Owner' : '📦 Staff'));
       updateMediaSession();
       updatePersistentNotification();
 
@@ -470,9 +508,17 @@
       antennaLed.className = 'antenna-tip';
       speakerRing.className = 'speaker-state-ring';
 
-      lcdSpeakerName.textContent = 'NOBODY SPEAKING';
-      lcdSpeakerRole.textContent = isShiftActive ? 'STANDBY (Channel Open)' : 'STANDBY (Shift Stopped)';
-      lcdSpeakerRole.style.color = isShiftActive ? '#00a152' : '#ffd54f';
+      if (currentChannel === 'owners') {
+        if (tacticalLcd) tacticalLcd.classList.add('channel-private');
+        lcdSpeakerName.textContent = 'NOBODY SPEAKING';
+        lcdSpeakerRole.textContent = 'STANDBY (Owner Private)';
+        lcdSpeakerRole.style.color = '#ffd54f';
+      } else {
+        if (tacticalLcd) tacticalLcd.classList.remove('channel-private');
+        lcdSpeakerName.textContent = 'NOBODY SPEAKING';
+        lcdSpeakerRole.textContent = isShiftActive ? 'STANDBY (Channel Open)' : 'STANDBY (Shift Stopped)';
+        lcdSpeakerRole.style.color = isShiftActive ? '#00a152' : '#ffd54f';
+      }
 
       renderRoster();
       clearVUMeter();
@@ -973,9 +1019,16 @@
     speakerRing.className = 'speaker-state-ring tx';
     pttStatusText.textContent = 'TRANSMITTING...';
 
+    const isPrivate = (isOwner && currentChannel === 'owners');
+
     lcdSpeakerName.textContent = myName.toUpperCase();
-    lcdSpeakerRole.textContent = '🎙️ YOU ARE TRANSMITTING...';
-    lcdSpeakerRole.style.color = '#ff1744';
+    if (isPrivate) {
+      lcdSpeakerRole.textContent = '🎙️ TRANSMITTING [🔒 OWNERS PRIVATE]...';
+      lcdSpeakerRole.style.color = '#ffd54f';
+    } else {
+      lcdSpeakerRole.textContent = '🎙️ YOU ARE TRANSMITTING...';
+      lcdSpeakerRole.style.color = '#ff1744';
+    }
 
     if (navigator.vibrate) navigator.vibrate([40]);
     playTxKeyClick();
@@ -985,7 +1038,8 @@
 
     if (ws && ws.readyState === WebSocket.OPEN) {
       ws.send(JSON.stringify({
-        type: 'talk_start'
+        type: 'talk_start',
+        channel: isPrivate ? 'owners' : 'all'
       }));
     }
   }
@@ -999,9 +1053,15 @@
     speakerRing.className = 'speaker-state-ring';
     pttStatusText.textContent = 'HOLD TO TALK';
 
-    lcdSpeakerName.textContent = 'NOBODY SPEAKING';
-    lcdSpeakerRole.textContent = isShiftActive ? 'STANDBY (Channel Open)' : 'STANDBY (Shift Stopped)';
-    lcdSpeakerRole.style.color = isShiftActive ? '#00a152' : '#ffd54f';
+    if (currentChannel === 'owners') {
+      lcdSpeakerName.textContent = 'NOBODY SPEAKING';
+      lcdSpeakerRole.textContent = 'STANDBY (Owner Private)';
+      lcdSpeakerRole.style.color = '#ffd54f';
+    } else {
+      lcdSpeakerName.textContent = 'NOBODY SPEAKING';
+      lcdSpeakerRole.textContent = isShiftActive ? 'STANDBY (Channel Open)' : 'STANDBY (Shift Stopped)';
+      lcdSpeakerRole.style.color = isShiftActive ? '#00a152' : '#ffd54f';
+    }
     clearVUMeter();
 
     if (navigator.vibrate) navigator.vibrate([20]);
@@ -1012,7 +1072,8 @@
 
     if (ws && ws.readyState === WebSocket.OPEN) {
       ws.send(JSON.stringify({
-        type: 'talk_stop'
+        type: 'talk_stop',
+        channel: currentChannel
       }));
     }
   }
