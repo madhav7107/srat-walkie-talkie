@@ -152,10 +152,10 @@ function setupWebSocketServer(wss) {
     // Send initial status with all stations
     ws.send(JSON.stringify({
       type: 'initial_state',
-      globalShiftActive: true,
-      globalShiftOwner: 'System',
+      globalShiftActive: globalShiftActive,
+      globalShiftOwner: globalShiftOwner,
       activeSlots: getActiveSlots(),
-      stations: (serverConfig.stations || []).map(s => ({ id: s.id, name: s.name }))
+      stations: (serverConfig.stations || []).map(s => ({ id: s.id, name: s.name, role: s.role }))
     }));
 
     ws.isAlive = true;
@@ -164,6 +164,9 @@ function setupWebSocketServer(wss) {
     ws.on('message', (data, isBinary) => {
       if (isBinary) {
         // High-speed binary voice broadcast directly to all other connected stations
+        if (!globalShiftActive && clientData.role !== 'owner') {
+          return;
+        }
         for (const [clientWs] of clients) {
           if (clientWs !== ws && clientWs.readyState === 1) { // 1 = OPEN
             clientWs.send(data, { binary: true });
@@ -197,23 +200,35 @@ function setupWebSocketServer(wss) {
 
             clientData.slot = requestedSlot;
             clientData.name = targetStation.name;
-            clientData.role = 'user';
+            clientData.role = targetStation.role || (['station_1', 'station_2', 'station_3'].includes(requestedSlot) ? 'owner' : 'staff');
 
             ws.send(JSON.stringify({
               type: 'slot_confirmed',
               slot: clientData.slot,
               name: clientData.name,
-              globalShiftActive: true,
-              stations: (serverConfig.stations || []).map(s => ({ id: s.id, name: s.name }))
+              role: clientData.role,
+              globalShiftActive: globalShiftActive,
+              globalShiftOwner: globalShiftOwner,
+              stations: clientData.role === 'owner'
+                ? (serverConfig.stations || []).map(s => ({ id: s.id, name: s.name, role: s.role, pin: s.pin }))
+                : (serverConfig.stations || []).map(s => ({ id: s.id, name: s.name, role: s.role }))
             }));
 
             broadcastPresence();
           } else if (msg.type === 'talk_start') {
+            if (!globalShiftActive && clientData.role !== 'owner') {
+              ws.send(JSON.stringify({
+                type: 'shift_blocked',
+                message: '⚠️ SHIFT IS STOPPED!\n\nOwners need to start the shift before staff can speak.\nPlease ask the Owners to start the shift.'
+              }));
+              return;
+            }
             clientData.isTalking = true;
             broadcastToOthers(ws, {
               type: 'talk_start',
               senderName: clientData.name,
-              senderSlot: clientData.slot
+              senderSlot: clientData.slot,
+              senderRole: clientData.role
             });
           } else if (msg.type === 'talk_stop') {
             clientData.isTalking = false;
@@ -222,23 +237,115 @@ function setupWebSocketServer(wss) {
               senderName: clientData.name,
               senderSlot: clientData.slot
             });
+          } else if (msg.type === 'set_shift') {
+            if (clientData.role !== 'owner') {
+              ws.send(JSON.stringify({ type: 'settings_error', message: 'Only Owners (Nimeeshbhai, Kalpeshbhai, Madhav) can start or stop the shift.' }));
+              return;
+            }
+            globalShiftActive = !!msg.active;
+            globalShiftOwner = 'Owners';
+            console.log(`[Shift] Changed by ${clientData.name} -> ${globalShiftActive ? 'ACTIVE' : 'STOPPED'}`);
+            broadcastToAll({
+              type: 'shift_status',
+              active: globalShiftActive,
+              ownerName: 'Owners'
+            });
+          } else if (msg.type === 'add_station') {
+            if (clientData.role !== 'owner') {
+              ws.send(JSON.stringify({ type: 'settings_error', message: 'Only Owners can add new persons.' }));
+              return;
+            }
+            const newName = String(msg.name || '').trim();
+            const newPin = String(msg.pin || '').trim();
+            if (!newName) {
+              ws.send(JSON.stringify({ type: 'settings_error', message: 'Name cannot be empty.' }));
+              return;
+            }
+            if (!newPin || newPin.length < 4) {
+              ws.send(JSON.stringify({ type: 'settings_error', message: 'Security PIN must be at least 4 digits.' }));
+              return;
+            }
+            const newId = `station_${Date.now()}`;
+            serverConfig.stations.push({
+              id: newId,
+              name: newName,
+              pin: newPin,
+              role: 'staff'
+            });
+            saveConfig(serverConfig);
+            console.log(`[Station Added] ${newName} (${newId}) added by ${clientData.name}`);
+            
+            for (const [cWs, cData] of clients) {
+              if (cWs.readyState === 1) {
+                cWs.send(JSON.stringify({
+                  type: 'stations_updated',
+                  stations: cData.role === 'owner'
+                    ? (serverConfig.stations || []).map(s => ({ id: s.id, name: s.name, role: s.role, pin: s.pin }))
+                    : (serverConfig.stations || []).map(s => ({ id: s.id, name: s.name, role: s.role }))
+                }));
+              }
+            }
+          } else if (msg.type === 'remove_station') {
+            if (clientData.role !== 'owner') {
+              ws.send(JSON.stringify({ type: 'settings_error', message: 'Only Owners can remove persons.' }));
+              return;
+            }
+            const removeId = msg.stationId;
+            if (['station_1', 'station_2', 'station_3'].includes(removeId)) {
+              ws.send(JSON.stringify({ type: 'settings_error', message: 'Cannot remove primary owner stations.' }));
+              return;
+            }
+            const idx = serverConfig.stations.findIndex(s => s.id === removeId);
+            if (idx !== -1) {
+              const removed = serverConfig.stations.splice(idx, 1)[0];
+              saveConfig(serverConfig);
+              console.log(`[Station Removed] ${removed.name} removed by ${clientData.name}`);
+              for (const [cWs, cData] of clients) {
+                if (cData.slot === removeId) {
+                  cWs.send(JSON.stringify({ type: 'slot_evicted', message: 'Your station has been removed by the Owners.' }));
+                }
+              }
+              for (const [cWs, cData] of clients) {
+                if (cWs.readyState === 1) {
+                  cWs.send(JSON.stringify({
+                    type: 'stations_updated',
+                    stations: cData.role === 'owner'
+                      ? (serverConfig.stations || []).map(s => ({ id: s.id, name: s.name, role: s.role, pin: s.pin }))
+                      : (serverConfig.stations || []).map(s => ({ id: s.id, name: s.name, role: s.role }))
+                  }));
+                }
+              }
+            }
           } else if (msg.type === 'change_pin') {
             const newPin = String(msg.newPin || '').trim();
+            const targetId = msg.stationId || clientData.slot;
+            if (clientData.role !== 'owner' && clientData.slot !== targetId) {
+              ws.send(JSON.stringify({ type: 'settings_error', message: 'Permission denied.' }));
+              return;
+            }
             if (!newPin || newPin.length < 4) {
               ws.send(JSON.stringify({ type: 'settings_error', message: 'Security PIN must be at least 4 digits.' }));
               return;
             }
 
-            const targetStation = (serverConfig.stations || []).find(s => s.id === clientData.slot);
+            const targetStation = (serverConfig.stations || []).find(s => s.id === targetId);
             if (targetStation) {
               targetStation.pin = newPin;
               saveConfig(serverConfig);
-              console.log(`[Settings] Station ${clientData.name} updated their Security PIN.`);
+              console.log(`[Settings] Station ${targetStation.name} PIN updated to ${newPin}`);
               ws.send(JSON.stringify({
                 type: 'pin_change_success',
-                message: `Security PIN for ${clientData.name} updated successfully!`,
+                message: `Security PIN for ${targetStation.name} updated to ${newPin}!`,
                 newPin: newPin
               }));
+              for (const [cWs, cData] of clients) {
+                if (cWs.readyState === 1 && cData.role === 'owner') {
+                  cWs.send(JSON.stringify({
+                    type: 'stations_updated',
+                    stations: (serverConfig.stations || []).map(s => ({ id: s.id, name: s.name, role: s.role, pin: s.pin }))
+                  }));
+                }
+              }
             }
           }
         } catch (e) {
