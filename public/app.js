@@ -5,11 +5,7 @@
   const radioScreen = document.getElementById('radioScreen');
 
   // Login Screen Elements
-  const roleBtnOwner = document.getElementById('roleBtnOwner');
-  const roleBtnStaff = document.getElementById('roleBtnStaff');
-  const ownerSlotsRow = document.getElementById('ownerSlotsRow');
-  const staffSlotsRow = document.getElementById('staffSlotsRow');
-  const ownerPinSection = document.getElementById('ownerPinSection');
+  const stationsRow = document.getElementById('stationsRow');
   const loginPinInput = document.getElementById('loginPinInput');
   const btnEnterRadio = document.getElementById('btnEnterRadio');
 
@@ -99,13 +95,12 @@
   const lcdChannelLabel = document.getElementById('lcdChannelLabel');
 
   // Application State
-  let currentSelectedRole = 'owner'; // 'owner' or 'staff'
-  let currentSelectedSlot = 'owner_1';
-  let myRole = 'owner';
-  let mySlot = 'owner_1';
-  let myName = '';
-  let currentChannel = 'all'; // 'all' (Broadcast) or 'owners' (Private Owner Channel)
-  let isShiftActive = false;
+  let currentSelectedSlot = 'station_1';
+  let myRole = 'user';
+  let mySlot = 'station_1';
+  let myName = 'Nimeeshbhai';
+  let currentChannel = 'all';
+  let isShiftActive = true;
   let isTransmitting = false;
   let isMicLocked = false;
   let isSpeakerMuted = false;
@@ -115,24 +110,20 @@
   let isLoggedIn = false;
 
   // Slots and Active Presence
-  let availableOwnerSlots = [
-    { id: 'owner_1', label: 'Nimeeshbhai' },
-    { id: 'owner_2', label: 'Kalpeshbhai' },
-    { id: 'owner_3', label: 'Madhav' }
-  ];
-  let availableStaffSlots = [
-    { id: 'staff_1', label: 'Sagarbhai', defaultName: 'Sagarbhai' },
-    { id: 'staff_2', label: 'Devraj', defaultName: 'Devraj' }
+  // Unified 5 Equal Personal Stations
+  let availableStations = [
+    { id: 'station_1', name: 'Nimeeshbhai' },
+    { id: 'station_2', name: 'Kalpeshbhai' },
+    { id: 'station_3', name: 'Madhav' },
+    { id: 'station_4', name: 'Sagarbhai' },
+    { id: 'station_5', name: 'Devraj' }
   ];
   let currentActiveSlots = {};
   let currentSpeakerSlot = '';
 
-  function getSlotLabel(slotId) {
-    const owner = availableOwnerSlots.find(o => o.id === slotId);
-    if (owner) return owner.label;
-    const staff = availableStaffSlots.find(s => s.id === slotId);
-    if (staff) return staff.label;
-    return slotId;
+  function getStationName(slotId) {
+    const st = availableStations.find(s => s.id === slotId);
+    return st ? st.name : slotId;
   }
 
   // Web Audio Contexts
@@ -149,45 +140,17 @@
   // LOGIN SCREEN LOGIC
   // ========================================================================
 
-  roleBtnOwner.addEventListener('click', () => selectRole('owner'));
-  roleBtnStaff.addEventListener('click', () => selectRole('staff'));
-
-  function selectRole(role) {
-    currentSelectedRole = role;
-    if (role === 'owner') {
-      roleBtnOwner.classList.add('active');
-      roleBtnStaff.classList.remove('active');
-      ownerSlotsRow.style.display = 'flex';
-      staffSlotsRow.style.display = 'none';
-      ownerPinSection.style.display = 'flex';
-      loginPinInput.value = '';
-      currentSelectedSlot = 'owner_1';
-      selectSlotPill('owner_1');
-    } else {
-      roleBtnStaff.classList.add('active');
-      roleBtnOwner.classList.remove('active');
-      ownerSlotsRow.style.display = 'none';
-      staffSlotsRow.style.display = 'flex';
-      ownerPinSection.style.display = 'flex';
-      loginPinInput.value = '';
-      const firstStaffId = availableStaffSlots.length > 0 ? availableStaffSlots[0].id : 'staff_1';
-      currentSelectedSlot = firstStaffId;
-      selectSlotPill(firstStaffId);
-    }
-    updatePinPlaceholder();
-  }
-
   function updatePinPlaceholder() {
-    const label = getSlotLabel(currentSelectedSlot);
+    const name = getStationName(currentSelectedSlot);
     if (loginPinInput) {
-      loginPinInput.placeholder = `Enter PIN for ${label}`;
+      loginPinInput.placeholder = `Enter PIN for ${name}`;
     }
   }
 
-  function renderOwnerPills() {
-    if (!ownerSlotsRow) return;
-    ownerSlotsRow.innerHTML = '';
-    availableOwnerSlots.forEach((slot, idx) => {
+  function renderStationPills() {
+    if (!stationsRow) return;
+    stationsRow.innerHTML = '';
+    availableStations.forEach((slot, idx) => {
       const btn = document.createElement('button');
       btn.type = 'button';
       btn.className = 'slot-pill' + (currentSelectedSlot === slot.id ? ' active' : '');
@@ -195,47 +158,15 @@
       const num = (idx + 1).toString().padStart(2, '0');
       btn.innerHTML = `
         <span class="slot-num">${num}</span>
-        <span class="slot-name">${slot.label}</span>
+        <span class="slot-name">${slot.name}</span>
       `;
       btn.addEventListener('click', () => {
         currentSelectedSlot = slot.id;
         selectSlotPill(slot.id);
         updatePinPlaceholder();
       });
-      ownerSlotsRow.appendChild(btn);
+      stationsRow.appendChild(btn);
     });
-  }
-
-  // Dynamic Staff Slot Pills Rendering
-  function renderStaffPills() {
-    if (!staffSlotsRow) return;
-    staffSlotsRow.innerHTML = '';
-    availableStaffSlots.forEach((slot, idx) => {
-      const btn = document.createElement('button');
-      btn.type = 'button';
-      btn.className = 'slot-pill' + (currentSelectedSlot === slot.id ? ' active' : '');
-      btn.dataset.slot = slot.id;
-      const num = (idx + 1).toString().padStart(2, '0');
-      btn.innerHTML = `
-        <span class="slot-num">${num}</span>
-        <span class="slot-name">${slot.label}</span>
-      `;
-      btn.addEventListener('click', () => {
-        currentSelectedSlot = slot.id;
-        selectSlotPill(slot.id);
-        updatePinPlaceholder();
-      });
-      staffSlotsRow.appendChild(btn);
-    });
-
-    if (currentSelectedRole === 'staff') {
-      const exists = availableStaffSlots.some(s => s.id === currentSelectedSlot);
-      if (!exists && availableStaffSlots.length > 0) {
-        currentSelectedSlot = availableStaffSlots[0].id;
-        selectSlotPill(currentSelectedSlot);
-        updatePinPlaceholder();
-      }
-    }
   }
 
   function selectSlotPill(slot) {
@@ -244,38 +175,31 @@
     if (target) target.classList.add('active');
   }
 
-  // Setup Owner & Staff Slot Pill initial clicks
-  ownerSlotsRow.querySelectorAll('.slot-pill').forEach(pill => {
-    pill.addEventListener('click', () => {
-      const slot = pill.dataset.slot;
-      currentSelectedSlot = slot;
-      selectSlotPill(slot);
-      updatePinPlaceholder();
+  // Initial pill click listeners in HTML
+  if (stationsRow) {
+    stationsRow.querySelectorAll('.slot-pill').forEach(pill => {
+      pill.addEventListener('click', () => {
+        const slot = pill.dataset.slot;
+        currentSelectedSlot = slot;
+        selectSlotPill(slot);
+        updatePinPlaceholder();
+      });
     });
-  });
-
-  staffSlotsRow.querySelectorAll('.slot-pill').forEach(pill => {
-    pill.addEventListener('click', () => {
-      const slot = pill.dataset.slot;
-      currentSelectedSlot = slot;
-      selectSlotPill(slot);
-      updatePinPlaceholder();
-    });
-  });
+  }
 
   // Submit Login
   btnEnterRadio.addEventListener('click', () => {
     const pin = loginPinInput.value.trim();
-    const targetLabel = getSlotLabel(currentSelectedSlot);
+    const targetName = getStationName(currentSelectedSlot);
     if (!pin) {
-      alert(`Please enter the Security PIN for ${targetLabel}.`);
+      alert(`Please enter the Security PIN for ${targetName}.`);
       loginPinInput.focus();
       return;
     }
 
     mySlot = currentSelectedSlot;
-    myRole = currentSelectedRole;
-    myName = targetLabel;
+    myName = targetName;
+    myRole = 'user';
 
     // Warm up audio and ask for microphone permission during direct user gesture
     initAudio();
@@ -295,55 +219,24 @@
     loginScreen.style.display = 'none';
     radioScreen.style.display = 'block';
 
-    badgeIcon.textContent = myRole === 'owner' ? '👑' : '📦';
-    badgeText.textContent = `${myRole === 'owner' ? 'OWNER' : 'STAFF'} (${myName})`;
+    badgeIcon.textContent = '📻';
+    badgeText.textContent = `STATION: ${myName.toUpperCase()}`;
 
-    if (myRole === 'owner') {
-      btnMasterShift.style.display = 'block';
-      staffShiftStatus.style.display = 'none';
-      if (btnOwnerSettings) btnOwnerSettings.style.display = 'inline-flex';
-      if (ownerChannelBar) ownerChannelBar.style.display = 'flex';
-      setChannel(currentChannel);
-    } else {
-      btnMasterShift.style.display = 'none';
-      staffShiftStatus.style.display = 'block';
-      if (btnOwnerSettings) btnOwnerSettings.style.display = 'none';
-      if (ownerChannelBar) ownerChannelBar.style.display = 'none';
-      setChannel('all');
-    }
-  }
+    if (btnMasterShift) btnMasterShift.style.display = 'none';
+    if (staffShiftStatus) staffShiftStatus.style.display = 'none';
+    if (btnOwnerSettings) btnOwnerSettings.style.display = 'none';
+    if (ownerChannelBar) ownerChannelBar.style.display = 'none';
+    if (lcdChannelLabel) lcdChannelLabel.textContent = 'CH-01 [WAREHOUSE & OFFICE BROADCAST]';
+    lcdSpeakerRole.textContent = 'STANDBY (Channel Open)';
+    lcdSpeakerRole.style.color = '#00a152';
 
-  // Owner Channel Frequency Switching
-  function setChannel(channel) {
-    currentChannel = (channel === 'owners' && myRole === 'owner') ? 'owners' : 'all';
-    if (currentChannel === 'owners') {
-      if (btnChOwners) btnChOwners.classList.add('active');
-      if (btnChAll) btnChAll.classList.remove('active');
-      if (tacticalLcd) tacticalLcd.classList.add('channel-private');
-      if (pttButton) pttButton.classList.add('channel-private');
-      if (lcdChannelLabel) lcdChannelLabel.textContent = 'CH-02 [OWNER PRIVATE ENCRYPTED]';
-      if (!currentSpeakerSlot) {
-        lcdSpeakerRole.textContent = 'STANDBY (Owner Private)';
-        lcdSpeakerRole.style.color = '#ffd54f';
-      }
-    } else {
-      if (btnChAll) btnChAll.classList.add('active');
-      if (btnChOwners) btnChOwners.classList.remove('active');
-      if (tacticalLcd) tacticalLcd.classList.remove('channel-private');
-      if (pttButton) pttButton.classList.remove('channel-private');
-      if (lcdChannelLabel) lcdChannelLabel.textContent = 'CH-01 [WAREHOUSE + OFFICE]';
-      if (!currentSpeakerSlot) {
-        lcdSpeakerRole.textContent = 'STANDBY (Channel Open)';
-        lcdSpeakerRole.style.color = '#00a152';
-      }
-    }
-
-    if (ws && ws.readyState === WebSocket.OPEN && myRole === 'owner') {
-      ws.send(JSON.stringify({
-        type: 'set_channel',
-        channel: currentChannel
-      }));
-    }
+    // Activate shift, audio, wake lock
+    isShiftActive = true;
+    if (pttButton) pttButton.classList.remove('shift-locked');
+    if (btnLockMic) btnLockMic.classList.remove('shift-locked');
+    initAudio();
+    enableBackgroundAudio();
+    requestWakeLock();
   }
 
   if (btnChAll) {
@@ -371,18 +264,17 @@
   const savedLogin = localStorage.getItem('walkie_logged_in');
   if (savedLogin === 'true') {
     isLoggedIn = true;
-    mySlot = localStorage.getItem('walkie_slot') || 'owner_1';
-    myRole = localStorage.getItem('walkie_role') || 'owner';
-    myName = localStorage.getItem('walkie_name') || 'User';
-    currentSelectedRole = myRole;
+    mySlot = localStorage.getItem('walkie_slot') || 'station_1';
+    myName = localStorage.getItem('walkie_name') || getStationName(mySlot);
     currentSelectedSlot = mySlot;
 
     switchToRadioScreen();
     connectWebSocket();
   } else {
     isLoggedIn = false;
-    loginPinInput.value = '';
-    selectRole('owner');
+    currentSelectedSlot = 'station_1';
+    selectSlotPill('station_1');
+    updatePinPlaceholder();
     connectWebSocket();
   }
 
@@ -443,36 +335,21 @@
 
   function handleSignaling(msg) {
     if (msg.type === 'initial_state') {
-      if (Array.isArray(msg.ownerSlots)) {
-        availableOwnerSlots = msg.ownerSlots;
-        renderOwnerPills();
-      }
-      if (Array.isArray(msg.staffSlots)) {
-        availableStaffSlots = msg.staffSlots;
-        renderStaffPills();
+      if (Array.isArray(msg.stations)) {
+        availableStations = msg.stations;
+        renderStationPills();
       }
       currentActiveSlots = msg.activeSlots || {};
       renderRoster();
-      syncShiftState(msg.globalShiftActive, msg.globalShiftOwner);
       updatePinPlaceholder();
-    } else if (msg.type === 'staff_slots_updated') {
-      if (Array.isArray(msg.staffSlots)) {
-        availableStaffSlots = msg.staffSlots;
-        renderStaffPills();
-        renderRoster();
-        if (settingsModal && settingsModal.style.display === 'flex') {
-          renderSettingsStaffList();
-        }
-      }
     } else if (msg.type === 'slot_confirmed') {
       mySlot = msg.slot;
-      myRole = msg.role;
       myName = msg.name;
+      myRole = 'user';
       isLoggedIn = true;
 
       localStorage.setItem('walkie_logged_in', 'true');
       localStorage.setItem('walkie_slot', mySlot);
-      localStorage.setItem('walkie_role', myRole);
       localStorage.setItem('walkie_name', myName);
       if (loginPinInput.value) {
         localStorage.setItem('walkie_pin', loginPinInput.value.trim());
@@ -480,20 +357,15 @@
 
       switchToRadioScreen();
 
-      if (Array.isArray(msg.ownerSlots)) {
-        availableOwnerSlots = msg.ownerSlots;
-        renderOwnerPills();
-      }
-      if (Array.isArray(msg.staffSlots)) {
-        availableStaffSlots = msg.staffSlots;
-        renderStaffPills();
+      if (Array.isArray(msg.stations)) {
+        availableStations = msg.stations;
+        renderStationPills();
       }
 
-      badgeIcon.textContent = myRole === 'owner' ? '👑' : '📦';
-      badgeText.textContent = `${myRole === 'owner' ? 'OWNER' : 'STAFF'} (${myName})`;
+      badgeIcon.textContent = '📻';
+      badgeText.textContent = `STATION: ${myName.toUpperCase()}`;
 
       renderRoster();
-      syncShiftState(msg.globalShiftActive, msg.globalShiftOwner);
     } else if (msg.type === 'slot_error') {
       alert(msg.message);
       isLoggedIn = false;
@@ -504,23 +376,15 @@
         loginPinInput.value = '';
         loginPinInput.focus();
       }
-    } else if (msg.type === 'slot_evicted') {
-      alert(msg.message || 'Your staff station has been removed by the Owner.');
-      btnLogout.click();
     } else if (msg.type === 'pin_change_success') {
       localStorage.setItem('walkie_pin', msg.newPin);
       alert('Security PIN updated successfully! Keep your new PIN safe.');
       if (newOwnerPinInput) newOwnerPinInput.value = '';
     } else if (msg.type === 'settings_error') {
       alert('Settings Error: ' + (msg.message || 'Action failed'));
-    } else if (msg.type === 'shift_status') {
-      syncShiftState(msg.active, msg.ownerName);
     } else if (msg.type === 'presence') {
       currentActiveSlots = msg.activeSlots || {};
       renderRoster();
-      if (settingsModal && settingsModal.style.display === 'flex') {
-        renderSettingsStaffList();
-      }
     } else if (msg.type === 'talk_start') {
       nextPlayTime = 0; // Immediate zero-latency playback start
       currentSpeakerName = msg.senderName || 'Station';
@@ -531,7 +395,7 @@
       if (audioCtx && audioCtx.state === 'suspended') {
         audioCtx.resume();
       }
-      if (bgKeepAliveAudio.paused && isShiftActive) {
+      if (bgKeepAliveAudio.paused) {
         bgKeepAliveAudio.play().catch(() => {});
       }
 
@@ -539,27 +403,15 @@
       antennaLed.className = 'antenna-tip tx';
       speakerRing.className = 'speaker-state-ring rx';
 
-      const isIncomingPrivate = msg.channel === 'owners';
-      if (isIncomingPrivate) {
-        if (tacticalLcd) tacticalLcd.classList.add('channel-private');
-        lcdSpeakerName.textContent = msg.senderName.toUpperCase();
-        lcdSpeakerRole.textContent = `🔒 [OWNER PRIVATE] TRANSMITTING...`;
-        lcdSpeakerRole.style.color = '#ffd54f';
-      } else {
-        if (currentChannel !== 'owners' && tacticalLcd) {
-          tacticalLcd.classList.remove('channel-private');
-        }
-        const roleTag = msg.senderRole === 'owner' ? '👑 OWNER' : '📦 STAFF';
-        lcdSpeakerName.textContent = msg.senderName.toUpperCase();
-        lcdSpeakerRole.textContent = `🎙️ ${roleTag} IS TRANSMITTING...`;
-        lcdSpeakerRole.style.color = '#00e676';
-      }
+      lcdSpeakerName.textContent = msg.senderName.toUpperCase();
+      lcdSpeakerRole.textContent = `🎙️ ${msg.senderName.toUpperCase()} IS TRANSMITTING...`;
+      lcdSpeakerRole.style.color = '#00e676';
 
       // Vibrate mobile device (in pocket)
       if (navigator.vibrate) navigator.vibrate([150, 80, 150]);
 
       // Pop-up mobile system notification if app is in background or phone locked
-      showBackgroundSpeakerNotification(msg.senderName, isIncomingPrivate ? 'Owner [PRIVATE]' : msg.senderRole);
+      showBackgroundSpeakerNotification(msg.senderName, 'Station');
       updateMediaSession();
       updatePersistentNotification();
 
@@ -573,17 +425,9 @@
       antennaLed.className = 'antenna-tip';
       speakerRing.className = 'speaker-state-ring';
 
-      if (currentChannel === 'owners') {
-        if (tacticalLcd) tacticalLcd.classList.add('channel-private');
-        lcdSpeakerName.textContent = 'NOBODY SPEAKING';
-        lcdSpeakerRole.textContent = 'STANDBY (Owner Private)';
-        lcdSpeakerRole.style.color = '#ffd54f';
-      } else {
-        if (tacticalLcd) tacticalLcd.classList.remove('channel-private');
-        lcdSpeakerName.textContent = 'NOBODY SPEAKING';
-        lcdSpeakerRole.textContent = 'STANDBY (Channel Open)';
-        lcdSpeakerRole.style.color = '#00a152';
-      }
+      lcdSpeakerName.textContent = 'NOBODY SPEAKING';
+      lcdSpeakerRole.textContent = 'STANDBY (Channel Open)';
+      lcdSpeakerRole.style.color = '#00a152';
 
       renderRoster();
       clearVUMeter();
@@ -597,25 +441,16 @@
     let html = '';
     let count = 0;
 
-    availableOwnerSlots.forEach(slot => {
+    availableStations.forEach(slot => {
       const isOnline = !!currentActiveSlots[slot.id];
       if (isOnline) count++;
       const isTalking = currentSpeakerSlot === slot.id;
-      const tag = slot.label.charAt(0).toUpperCase();
-      html += `<div class="roster-item ${isOnline ? 'online' : ''} ${isTalking ? 'talking' : ''}" id="roster_${slot.id}" title="${isOnline ? `${currentActiveSlots[slot.id].name} (Owner)` : slot.label}"><span>${tag}</span></div>`;
-    });
-
-    availableStaffSlots.forEach(slot => {
-      const isOnline = !!currentActiveSlots[slot.id];
-      if (isOnline) count++;
-      const isTalking = currentSpeakerSlot === slot.id;
-      const tag = slot.label.charAt(0).toUpperCase();
-      html += `<div class="roster-item ${isOnline ? 'online' : ''} ${isTalking ? 'talking' : ''}" id="roster_${slot.id}" title="${isOnline ? `${currentActiveSlots[slot.id].name} (Staff)` : slot.label}"><span>${tag}</span></div>`;
+      const tag = slot.name.charAt(0).toUpperCase();
+      html += `<div class="roster-item ${isOnline ? 'online' : ''} ${isTalking ? 'talking' : ''}" id="roster_${slot.id}" title="${isOnline ? `${currentActiveSlots[slot.id].name}` : slot.name}"><span>${tag}</span></div>`;
     });
 
     rosterDots.innerHTML = html;
-    const totalStations = availableOwnerSlots.length + availableStaffSlots.length;
-    counterText.textContent = `${count} / ${totalStations} ONLINE`;
+    counterText.textContent = `${count} / ${availableStations.length} ONLINE`;
   }
 
   // ========================================================================
@@ -1019,20 +854,6 @@
 
   async function startTransmitting(e) {
     if (e && e.cancelable) e.preventDefault();
-
-    // If shift is not started, guide user immediately
-    if (!isShiftActive) {
-      if (myRole === 'owner') {
-        const wantStart = confirm('⚠️ SHIFT IS CURRENTLY STOPPED.\n\nTap OK to START SHIFT and open walkie-talkie broadcast.');
-        if (wantStart && ws && ws.readyState === WebSocket.OPEN) {
-          ws.send(JSON.stringify({ type: 'set_shift', active: true }));
-        }
-      } else {
-        alert('⚠️ SHIFT IS STOPPED!\n\nOwner needs to start the shift before staff can speak.\nPlease ask the Owner (Madhav) to tap "START SHIFT".');
-      }
-      return;
-    }
-
     if (isTransmitting) return;
 
     if (audioCtx && audioCtx.state === 'suspended') {
@@ -1060,9 +881,8 @@
     speakerRing.className = 'speaker-state-ring tx';
     pttStatusText.textContent = 'TRANSMITTING...';
 
-    const chTag = (currentChannel === 'owners' && myRole === 'owner') ? 'CH-02 PRIVATE' : 'CH-01 ALL';
     lcdSpeakerName.textContent = myName.toUpperCase();
-    lcdSpeakerRole.textContent = `🎙️ TRANSMITTING [${chTag}]...`;
+    lcdSpeakerRole.textContent = '🎙️ YOU ARE TRANSMITTING...';
     lcdSpeakerRole.style.color = '#ff1744';
 
     if (navigator.vibrate) navigator.vibrate([40]);
@@ -1079,7 +899,7 @@
   }
 
   function stopTransmitting() {
-    if (!isShiftActive || !isTransmitting) return;
+    if (!isTransmitting) return;
 
     isTransmitting = false;
     pttButton.classList.remove('transmitting');
@@ -1107,18 +927,6 @@
 
   // Hands-Free Lock Mic
   btnLockMic.addEventListener('click', () => {
-    if (!isShiftActive) {
-      if (myRole === 'owner') {
-        const wantStart = confirm('⚠️ SHIFT IS CURRENTLY STOPPED.\n\nTap OK to START SHIFT and open walkie-talkie broadcast.');
-        if (wantStart && ws && ws.readyState === WebSocket.OPEN) {
-          ws.send(JSON.stringify({ type: 'set_shift', active: true }));
-        }
-      } else {
-        alert('⚠️ SHIFT IS STOPPED!\n\nOwner needs to start the shift before staff can speak.');
-      }
-      return;
-    }
-
     isMicLocked = !isMicLocked;
     if (isMicLocked) {
       btnLockMic.classList.add('active');
