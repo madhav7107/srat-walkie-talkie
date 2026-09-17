@@ -37,6 +37,7 @@
   const pttStatusText = document.getElementById('pttStatusText');
   const btnLockMic = document.getElementById('btnLockMic');
   const lockMicLabel = document.getElementById('lockMicLabel');
+  const lockMicIcon = document.getElementById('lockMicIcon');
   const btnMuteSpeaker = document.getElementById('btnMuteSpeaker');
   const muteIcon = document.getElementById('muteIcon');
   const muteLabel = document.getElementById('muteLabel');
@@ -237,6 +238,11 @@
     if (masterShiftBar) masterShiftBar.style.display = 'flex';
     if (lcdChannelLabel) lcdChannelLabel.textContent = currentChannel === 'owners' ? 'CH-02 [🔒 OWNERS PRIVATE]' : 'CH-01 [WAREHOUSE + OFFICE]';
 
+    if (btnLockMic) {
+      btnLockMic.removeAttribute('disabled');
+      btnLockMic.disabled = false;
+    }
+
     if (isShiftActive) {
       lcdSpeakerRole.textContent = currentChannel === 'owners' ? 'STANDBY (Owner Private)' : 'STANDBY (Channel Open)';
       lcdSpeakerRole.style.color = currentChannel === 'owners' ? '#ffd54f' : '#00a152';
@@ -305,12 +311,12 @@
   });
 
   // Check saved session on startup
-  if (localStorage.getItem('walkie_app_ver') !== 'v9') {
+  if (localStorage.getItem('walkie_app_ver') !== 'v10') {
     localStorage.removeItem('walkie_logged_in');
     localStorage.removeItem('walkie_role');
     localStorage.removeItem('walkie_slot');
     localStorage.removeItem('walkie_name');
-    localStorage.setItem('walkie_app_ver', 'v9');
+    localStorage.setItem('walkie_app_ver', 'v10');
     if ('caches' in window) {
       caches.keys().then(keys => {
         keys.forEach(k => caches.delete(k));
@@ -799,6 +805,14 @@
   }
 
   function stopShiftLocally() {
+    if (isMicLocked) {
+      isMicLocked = false;
+      if (btnLockMic) {
+        btnLockMic.classList.remove('active');
+        if (lockMicLabel) lockMicLabel.textContent = 'HANDS-FREE (OFF)';
+        if (lockMicIcon) lockMicIcon.textContent = '🎙️';
+      }
+    }
     if (isTransmitting) stopTransmitting();
     closeMicrophone();
     disableBackgroundAudio();
@@ -1017,6 +1031,17 @@
   // Modern Pointer Events for rock-solid touch and holding on mobile
   pttButton.addEventListener('pointerdown', (e) => {
     e.preventDefault();
+    if (isMicLocked) {
+      // If mic was locked in Hands-Free mode, tapping the large PTT button releases it instantly
+      isMicLocked = false;
+      if (btnLockMic) {
+        btnLockMic.classList.remove('active');
+        if (lockMicLabel) lockMicLabel.textContent = 'HANDS-FREE (OFF)';
+        if (lockMicIcon) lockMicIcon.textContent = '🎙️';
+      }
+      stopTransmitting();
+      return;
+    }
     activePointerId = e.pointerId;
     try {
       pttButton.setPointerCapture(e.pointerId);
@@ -1128,6 +1153,14 @@
     if (!isTransmitting) return;
 
     isTransmitting = false;
+    if (isMicLocked) {
+      isMicLocked = false;
+      if (btnLockMic) {
+        btnLockMic.classList.remove('active');
+        if (lockMicLabel) lockMicLabel.textContent = 'HANDS-FREE (OFF)';
+        if (lockMicIcon) lockMicIcon.textContent = '🎙️';
+      }
+    }
     pttButton.classList.remove('transmitting');
     antennaLed.className = 'antenna-tip';
     speakerRing.className = 'speaker-state-ring';
@@ -1159,7 +1192,7 @@
   }
 
   // Hands-Free Lock Mic
-  btnLockMic.addEventListener('click', () => {
+  btnLockMic.addEventListener('click', async () => {
     const isOwner = myRole === 'owner' || ['station_1', 'station_2', 'station_3'].includes(mySlot);
     if (!isShiftActive) {
       if (isOwner) {
@@ -1173,14 +1206,30 @@
       return;
     }
 
-    isMicLocked = !isMicLocked;
-    if (isMicLocked) {
+    if (!isMicLocked) {
+      isMicLocked = true;
       btnLockMic.classList.add('active');
-      lockMicLabel.textContent = 'HANDS-FREE (ON)';
-      startTransmitting();
+      if (lockMicLabel) lockMicLabel.textContent = 'HANDS-FREE (ON)';
+      if (lockMicIcon) lockMicIcon.textContent = '🔴';
+      try {
+        await startTransmitting();
+        if (!isTransmitting) {
+          isMicLocked = false;
+          btnLockMic.classList.remove('active');
+          if (lockMicLabel) lockMicLabel.textContent = 'HANDS-FREE (OFF)';
+          if (lockMicIcon) lockMicIcon.textContent = '🎙️';
+        }
+      } catch (err) {
+        isMicLocked = false;
+        btnLockMic.classList.remove('active');
+        if (lockMicLabel) lockMicLabel.textContent = 'HANDS-FREE (OFF)';
+        if (lockMicIcon) lockMicIcon.textContent = '🎙️';
+      }
     } else {
+      isMicLocked = false;
       btnLockMic.classList.remove('active');
-      lockMicLabel.textContent = 'HANDS-FREE (OFF)';
+      if (lockMicLabel) lockMicLabel.textContent = 'HANDS-FREE (OFF)';
+      if (lockMicIcon) lockMicIcon.textContent = '🎙️';
       stopTransmitting();
     }
   });
