@@ -30,59 +30,37 @@
 
       <div class="login-divider"></div>
 
-      <!-- Step 1: Role Selector -->
+      <!-- Station Selection (All 5 equal stations) -->
       <div class="form-section">
-        <label class="form-label">1. SELECT YOUR ROLE</label>
-        <div class="role-grid">
-          <button type="button" class="role-card active" data-role="owner" id="roleBtnOwner">
-            <span class="role-card-icon">👑</span>
-            <span class="role-card-title">OWNER</span>
-            <span class="role-card-sub">Office Master (Shift Control)</span>
-          </button>
-          <button type="button" class="role-card" data-role="staff" id="roleBtnStaff">
-            <span class="role-card-icon">📦</span>
-            <span class="role-card-title">GODOWN STAFF</span>
-            <span class="role-card-sub">Warehouse Station</span>
-          </button>
-        </div>
-      </div>
-
-      <!-- Step 2: Slot Selection -->
-      <div class="form-section">
-        <label class="form-label" id="slotLabel">2. CHOOSE STATION SLOT</label>
+        <label class="form-label" id="slotLabel">1. SELECT YOUR NAME</label>
         
-        <!-- Owner Slots (3) -->
-        <div class="slot-pills-row" id="ownerSlotsRow">
-          <button type="button" class="slot-pill active" data-slot="owner_1">
+        <div class="slot-pills-row" id="stationsRow">
+          <button type="button" class="slot-pill active" data-slot="station_1">
             <span class="slot-num">01</span>
             <span class="slot-name">Nimeeshbhai</span>
           </button>
-          <button type="button" class="slot-pill" data-slot="owner_2">
+          <button type="button" class="slot-pill" data-slot="station_2">
             <span class="slot-num">02</span>
             <span class="slot-name">Kalpeshbhai</span>
           </button>
-          <button type="button" class="slot-pill" data-slot="owner_3">
+          <button type="button" class="slot-pill" data-slot="station_3">
             <span class="slot-num">03</span>
             <span class="slot-name">Madhav</span>
           </button>
-        </div>
-
-        <!-- Staff Slots (2) -->
-        <div class="slot-pills-row" id="staffSlotsRow" style="display: none;">
-          <button type="button" class="slot-pill active" data-slot="staff_1">
-            <span class="slot-num">01</span>
+          <button type="button" class="slot-pill" data-slot="station_4">
+            <span class="slot-num">04</span>
             <span class="slot-name">Sagarbhai</span>
           </button>
-          <button type="button" class="slot-pill" data-slot="staff_2">
-            <span class="slot-num">02</span>
+          <button type="button" class="slot-pill" data-slot="station_5">
+            <span class="slot-num">05</span>
             <span class="slot-name">Devraj</span>
           </button>
         </div>
       </div>
 
-      <!-- Step 3: Security PIN -->
+      <!-- Security PIN -->
       <div class="form-section" id="ownerPinSection">
-        <label class="form-label" id="pinLabel">3. ENTER SECURITY PIN</label>
+        <label class="form-label" id="pinLabel">2. ENTER SECURITY PIN</label>
         <input type="password" id="loginPinInput" class="input-field" placeholder="Enter Secret PIN" maxlength="8" autocomplete="off" inputmode="numeric">
       </div>
 
@@ -91,7 +69,7 @@
       </button>
 
       <div class="login-footer-info">
-        🔒 Authorized Personnel Only: Owners & Godown Staff
+        🔒 Authorized Personnel Only: Godown Walkie-Talkie Radio
       </div>
     </div>
   </div>
