@@ -145,7 +145,8 @@ function setupWebSocketServer(wss) {
       slot: null,
       role: 'user',
       name: 'Connecting...',
-      isTalking: false
+      isTalking: false,
+      currentChannel: 'all'
     };
     clients.set(ws, clientData);
 
@@ -167,8 +168,14 @@ function setupWebSocketServer(wss) {
         if (!globalShiftActive && clientData.role !== 'owner') {
           return;
         }
-        for (const [clientWs] of clients) {
+        const isOwnerPrivate = (clientData.role === 'owner' && clientData.currentChannel === 'owners');
+
+        for (const [clientWs, cData] of clients) {
           if (clientWs !== ws && clientWs.readyState === 1) { // 1 = OPEN
+            // If private owner channel, ONLY send to other owners! Staff never receives this audio!
+            if (isOwnerPrivate && cData.role !== 'owner') {
+              continue;
+            }
             clientWs.send(data, { binary: true });
           }
         }
@@ -224,19 +231,40 @@ function setupWebSocketServer(wss) {
               return;
             }
             clientData.isTalking = true;
-            broadcastToOthers(ws, {
-              type: 'talk_start',
-              senderName: clientData.name,
-              senderSlot: clientData.slot,
-              senderRole: clientData.role
-            });
+            clientData.currentChannel = (clientData.role === 'owner' && msg.channel === 'owners') ? 'owners' : 'all';
+            const isOwnerPrivate = (clientData.currentChannel === 'owners');
+
+            for (const [clientWs, cData] of clients) {
+              if (clientWs !== ws && clientWs.readyState === 1) {
+                // If owner private, only notify other owners!
+                if (isOwnerPrivate && cData.role !== 'owner') {
+                  continue;
+                }
+                clientWs.send(JSON.stringify({
+                  type: 'talk_start',
+                  senderName: clientData.name,
+                  senderSlot: clientData.slot,
+                  senderRole: clientData.role,
+                  channel: clientData.currentChannel
+                }));
+              }
+            }
           } else if (msg.type === 'talk_stop') {
             clientData.isTalking = false;
-            broadcastToOthers(ws, {
-              type: 'talk_stop',
-              senderName: clientData.name,
-              senderSlot: clientData.slot
-            });
+            const isOwnerPrivate = (clientData.currentChannel === 'owners');
+            for (const [clientWs, cData] of clients) {
+              if (clientWs !== ws && clientWs.readyState === 1) {
+                if (isOwnerPrivate && cData.role !== 'owner') {
+                  continue;
+                }
+                clientWs.send(JSON.stringify({
+                  type: 'talk_stop',
+                  senderName: clientData.name,
+                  senderSlot: clientData.slot,
+                  channel: clientData.currentChannel
+                }));
+              }
+            }
           } else if (msg.type === 'set_shift') {
             if (clientData.role !== 'owner') {
               ws.send(JSON.stringify({ type: 'settings_error', message: 'Only Owners (Nimeeshbhai, Kalpeshbhai, Madhav) can start or stop the shift.' }));
