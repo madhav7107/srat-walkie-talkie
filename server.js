@@ -105,11 +105,11 @@ const configPath = path.join(__dirname, 'staff_config.json');
 function loadConfig() {
   const defaultConfig = {
     stations: [
-      { id: 'station_1', name: 'Nimeeshbhai', pin: '3005' },
-      { id: 'station_2', name: 'Kalpeshbhai', pin: '1111' },
-      { id: 'station_3', name: 'Madhav', pin: '7107' },
-      { id: 'station_4', name: 'Sagarbhai', pin: '0954' },
-      { id: 'station_5', name: 'Devraj', pin: '1234' }
+      { id: 'station_1', name: 'Nimeeshbhai', pin: '3005', role: 'owner' },
+      { id: 'station_2', name: 'Kalpeshbhai', pin: '1111', role: 'owner' },
+      { id: 'station_3', name: 'Madhav', pin: '7107', role: 'owner' },
+      { id: 'station_4', name: 'Sagarbhai', pin: '0954', role: 'staff' },
+      { id: 'station_5', name: 'Devraj', pin: '1204', role: 'staff' }
     ]
   };
   try {
