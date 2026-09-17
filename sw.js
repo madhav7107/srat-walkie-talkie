@@ -1,9 +1,9 @@
-const CACHE_NAME = 'godown-walkie-v4';
+const CACHE_NAME = 'godown-walkie-v7';
 const ASSETS_TO_CACHE = [
   './',
   './index.html',
   './style.css',
-  './app.js',
+  './app.js?v=7',
   './manifest.json',
   './icon-192.png',
   './icon-512.png',
