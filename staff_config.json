@@ -1,15 +1,33 @@
 {
-  "ownerPin": "1234",
+  "ownerSlots": [
+    {
+      "id": "owner_1",
+      "label": "Nimeeshbhai",
+      "pin": "3005"
+    },
+    {
+      "id": "owner_2",
+      "label": "Kalpeshbhai",
+      "pin": "1111"
+    },
+    {
+      "id": "owner_3",
+      "label": "Madhav",
+      "pin": "7107"
+    }
+  ],
   "staffSlots": [
     {
       "id": "staff_1",
-      "label": "Staff 1",
-      "defaultName": "Staff 1"
+      "label": "Sagarbhai",
+      "defaultName": "Sagarbhai",
+      "pin": "0954"
     },
     {
       "id": "staff_2",
-      "label": "Staff 2",
-      "defaultName": "Staff 2"
+      "label": "Devraj",
+      "defaultName": "Devraj",
+      "pin": "1234"
     }
   ]
 }
