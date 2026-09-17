@@ -261,6 +261,19 @@
   });
 
   // Check saved session on startup
+  if (localStorage.getItem('walkie_app_ver') !== 'v7') {
+    localStorage.removeItem('walkie_logged_in');
+    localStorage.removeItem('walkie_role');
+    localStorage.removeItem('walkie_slot');
+    localStorage.removeItem('walkie_name');
+    localStorage.setItem('walkie_app_ver', 'v7');
+    if ('caches' in window) {
+      caches.keys().then(keys => {
+        keys.forEach(k => caches.delete(k));
+      });
+    }
+  }
+
   const savedLogin = localStorage.getItem('walkie_logged_in');
   if (savedLogin === 'true') {
     isLoggedIn = true;
@@ -584,56 +597,18 @@
   // MASTER SHIFT SYNCHRONIZATION
   // ========================================================================
 
-  async function syncShiftState(active, ownerName) {
-    isShiftActive = !!active;
+  async function syncShiftState() {
+    isShiftActive = true;
+    if (shiftStateLed) shiftStateLed.className = 'shift-state-indicator active';
+    if (shiftTitle) shiftTitle.textContent = 'BROADCAST ACTIVE';
+    if (shiftSub) shiftSub.textContent = 'Channel Open • Ready to Talk';
 
-    if (isShiftActive) {
-      shiftStateLed.className = 'shift-state-indicator active';
-      shiftTitle.textContent = 'SHIFT LIVE // RECORDING';
-      shiftSub.textContent = `Started by ${ownerName || 'Owner'} • Broadcasting Open`;
+    if (pttButton) pttButton.classList.remove('shift-locked');
+    if (btnLockMic) btnLockMic.classList.remove('shift-locked');
 
-      if (myRole === 'owner') {
-        btnMasterShift.classList.remove('start');
-        btnMasterShift.classList.add('stop');
-        btnMasterShift.textContent = 'STOP SHIFT';
-      } else {
-        staffShiftStatus.className = 'staff-shift-status active';
-        staffShiftStatus.textContent = 'ONLINE';
-      }
-
-      pttButton.classList.remove('shift-locked');
-      btnLockMic.classList.remove('shift-locked');
-
-      initAudio();
-      try {
-        await requestMicrophone();
-      } catch (e) {
-        console.log('Mic request:', e);
-      }
-      enableBackgroundAudio();
-      requestWakeLock();
-      playChime(523.25, 659.25, 783.99); // Start chime
-    } else {
-      stopShiftLocally();
-
-      shiftStateLed.className = 'shift-state-indicator';
-      shiftTitle.textContent = 'SHIFT STOPPED';
-      shiftSub.textContent = ownerName ? `Ended by ${ownerName} • Standby` : 'Waiting for Owner to start...';
-
-      if (myRole === 'owner') {
-        btnMasterShift.classList.remove('stop');
-        btnMasterShift.classList.add('start');
-        btnMasterShift.textContent = 'START SHIFT';
-      } else {
-        staffShiftStatus.className = 'staff-shift-status off';
-        staffShiftStatus.textContent = 'LOCKED';
-      }
-
-      pttButton.classList.add('shift-locked');
-      btnLockMic.classList.add('shift-locked');
-
-      playChime(783.99, 659.25, 523.25); // Shutdown chime
-    }
+    initAudio();
+    enableBackgroundAudio();
+    requestWakeLock();
   }
 
   function stopShiftLocally() {
@@ -643,20 +618,11 @@
     releaseWakeLock();
   }
 
-  // Owner Shift Button Click
-  btnMasterShift.addEventListener('click', () => {
-    if (myRole !== 'owner') {
-      alert('Only verified Owners can control the shift.');
-      return;
-    }
-    const nextState = !isShiftActive;
-    if (ws && ws.readyState === WebSocket.OPEN) {
-      ws.send(JSON.stringify({
-        type: 'set_shift',
-        active: nextState
-      }));
-    }
-  });
+  if (btnMasterShift) {
+    btnMasterShift.addEventListener('click', () => {
+      // Shift toggle disabled in unified mode
+    });
+  }
 
   // ========================================================================
   // AUDIO PIPELINE (16kHz PCM & JITTER BUFFER)
