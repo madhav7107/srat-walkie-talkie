@@ -429,6 +429,16 @@ body {
   animation: pulse-red 0.6s infinite alternate;
 }
 
+.roster-item.owner-dot {
+  border-color: #ffd54f;
+  color: #ffd54f;
+}
+
+.roster-item.owner-dot.online {
+  border-color: var(--color-lcd-text);
+  color: var(--color-lcd-text);
+}
+
 /* Master Shift Control Bar */
 .master-shift-bar {
   background: linear-gradient(135deg, #1b2532 0%, #111720 100%);
