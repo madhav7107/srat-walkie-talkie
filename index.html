@@ -126,23 +126,22 @@
         </div>
       </div>
 
-      <!-- Master Shift Control Bar -->
-      <div class="master-shift-bar" id="masterShiftBar">
+      <!-- Master Shift Control Bar (Hidden in Unified 5-Station Peer Mode) -->
+      <div class="master-shift-bar" id="masterShiftBar" style="display: none;">
         <div class="shift-details">
           <div class="shift-state-indicator" id="shiftStateLed"></div>
           <div class="shift-state-text">
-            <div class="shift-state-title" id="shiftTitle">SHIFT STOPPED</div>
-            <div class="shift-state-sub" id="shiftSub">Waiting for Owner to start...</div>
+            <div class="shift-state-title" id="shiftTitle">CHANNEL ACTIVE</div>
+            <div class="shift-state-sub" id="shiftSub">Broadcasting Open</div>
           </div>
         </div>
         
-        <!-- Shift Button: OWNER gets toggle button; STAFF gets read-only status -->
         <div class="shift-action-slot">
-          <button type="button" class="btn-master-shift start" id="btnMasterShift">
-            START SHIFT
+          <button type="button" class="btn-master-shift start" id="btnMasterShift" style="display: none;">
+            START
           </button>
           <div class="staff-shift-status off" id="staffShiftStatus" style="display: none;">
-            LOCKED
+            ONLINE
           </div>
         </div>
       </div>
@@ -326,6 +325,6 @@
     </div>
   </div>
 
-  <script src="app.js"></script>
+  <script src="app.js?v=7"></script>
 </body>
 </html>
