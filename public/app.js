@@ -9,7 +9,6 @@
   const roleBtnStaff = document.getElementById('roleBtnStaff');
   const ownerSlotsRow = document.getElementById('ownerSlotsRow');
   const staffSlotsRow = document.getElementById('staffSlotsRow');
-  const loginNameInput = document.getElementById('loginNameInput');
   const ownerPinSection = document.getElementById('ownerPinSection');
   const loginPinInput = document.getElementById('loginPinInput');
   const btnEnterRadio = document.getElementById('btnEnterRadio');
@@ -115,13 +114,26 @@
   let wakeLock = null;
   let isLoggedIn = false;
 
-  // Dynamic Staff Stations and Active Presence
+  // Slots and Active Presence
+  let availableOwnerSlots = [
+    { id: 'owner_1', label: 'Nimeeshbhai' },
+    { id: 'owner_2', label: 'Kalpeshbhai' },
+    { id: 'owner_3', label: 'Madhav' }
+  ];
   let availableStaffSlots = [
-    { id: 'staff_1', label: 'Staff 1', defaultName: 'Staff 1' },
-    { id: 'staff_2', label: 'Staff 2', defaultName: 'Staff 2' }
+    { id: 'staff_1', label: 'Sagarbhai', defaultName: 'Sagarbhai' },
+    { id: 'staff_2', label: 'Devraj', defaultName: 'Devraj' }
   ];
   let currentActiveSlots = {};
   let currentSpeakerSlot = '';
+
+  function getSlotLabel(slotId) {
+    const owner = availableOwnerSlots.find(o => o.id === slotId);
+    if (owner) return owner.label;
+    const staff = availableStaffSlots.find(s => s.id === slotId);
+    if (staff) return staff.label;
+    return slotId;
+  }
 
   // Web Audio Contexts
   let audioCtx = null;
@@ -151,28 +163,48 @@
       loginPinInput.value = '';
       currentSelectedSlot = 'owner_1';
       selectSlotPill('owner_1');
-      if (!loginNameInput.value) loginNameInput.placeholder = 'e.g. Owner 1 / Boss';
     } else {
       roleBtnStaff.classList.add('active');
       roleBtnOwner.classList.remove('active');
       ownerSlotsRow.style.display = 'none';
       staffSlotsRow.style.display = 'flex';
-      ownerPinSection.style.display = 'none';
+      ownerPinSection.style.display = 'flex';
+      loginPinInput.value = '';
       const firstStaffId = availableStaffSlots.length > 0 ? availableStaffSlots[0].id : 'staff_1';
       currentSelectedSlot = firstStaffId;
       selectSlotPill(firstStaffId);
-      if (!loginNameInput.value) loginNameInput.placeholder = 'e.g. Ramesh / Worker';
+    }
+    updatePinPlaceholder();
+  }
+
+  function updatePinPlaceholder() {
+    const label = getSlotLabel(currentSelectedSlot);
+    if (loginPinInput) {
+      loginPinInput.placeholder = `Enter PIN for ${label}`;
     }
   }
 
-  // Setup Owner Slot Pill clicks
-  ownerSlotsRow.querySelectorAll('.slot-pill').forEach(pill => {
-    pill.addEventListener('click', () => {
-      const slot = pill.dataset.slot;
-      currentSelectedSlot = slot;
-      selectSlotPill(slot);
+  function renderOwnerPills() {
+    if (!ownerSlotsRow) return;
+    ownerSlotsRow.innerHTML = '';
+    availableOwnerSlots.forEach((slot, idx) => {
+      const btn = document.createElement('button');
+      btn.type = 'button';
+      btn.className = 'slot-pill' + (currentSelectedSlot === slot.id ? ' active' : '');
+      btn.dataset.slot = slot.id;
+      const num = (idx + 1).toString().padStart(2, '0');
+      btn.innerHTML = `
+        <span class="slot-num">${num}</span>
+        <span class="slot-name">${slot.label}</span>
+      `;
+      btn.addEventListener('click', () => {
+        currentSelectedSlot = slot.id;
+        selectSlotPill(slot.id);
+        updatePinPlaceholder();
+      });
+      ownerSlotsRow.appendChild(btn);
     });
-  });
+  }
 
   // Dynamic Staff Slot Pills Rendering
   function renderStaffPills() {
@@ -186,11 +218,12 @@
       const num = (idx + 1).toString().padStart(2, '0');
       btn.innerHTML = `
         <span class="slot-num">${num}</span>
-        <span class="slot-name">${slot.label}${slot.defaultName && slot.defaultName !== slot.label ? ` (${slot.defaultName})` : ''}</span>
+        <span class="slot-name">${slot.label}</span>
       `;
       btn.addEventListener('click', () => {
         currentSelectedSlot = slot.id;
         selectSlotPill(slot.id);
+        updatePinPlaceholder();
       });
       staffSlotsRow.appendChild(btn);
     });
@@ -200,6 +233,7 @@
       if (!exists && availableStaffSlots.length > 0) {
         currentSelectedSlot = availableStaffSlots[0].id;
         selectSlotPill(currentSelectedSlot);
+        updatePinPlaceholder();
       }
     }
   }
@@ -210,37 +244,39 @@
     if (target) target.classList.add('active');
   }
 
+  // Setup Owner & Staff Slot Pill initial clicks
+  ownerSlotsRow.querySelectorAll('.slot-pill').forEach(pill => {
+    pill.addEventListener('click', () => {
+      const slot = pill.dataset.slot;
+      currentSelectedSlot = slot;
+      selectSlotPill(slot);
+      updatePinPlaceholder();
+    });
+  });
+
+  staffSlotsRow.querySelectorAll('.slot-pill').forEach(pill => {
+    pill.addEventListener('click', () => {
+      const slot = pill.dataset.slot;
+      currentSelectedSlot = slot;
+      selectSlotPill(slot);
+      updatePinPlaceholder();
+    });
+  });
+
   // Submit Login
   btnEnterRadio.addEventListener('click', () => {
-    const enteredName = loginNameInput.value.trim();
-    if (!enteredName) {
-      alert('Please enter your Name or Callsign.');
-      loginNameInput.focus();
+    const pin = loginPinInput.value.trim();
+    const targetLabel = getSlotLabel(currentSelectedSlot);
+    if (!pin) {
+      alert(`Please enter the Security PIN for ${targetLabel}.`);
+      loginPinInput.focus();
       return;
     }
 
-    let pin = '';
-    if (currentSelectedRole === 'owner') {
-      pin = loginPinInput.value.trim();
-      if (!pin) {
-        alert('Please enter the secret Owner Security PIN.');
-        loginPinInput.focus();
-        return;
-      }
-    }
-
-    myName = enteredName;
     mySlot = currentSelectedSlot;
     myRole = currentSelectedRole;
-    isLoggedIn = true;
+    myName = targetLabel;
 
-    localStorage.setItem('walkie_logged_in', 'true');
-    localStorage.setItem('walkie_slot', mySlot);
-    localStorage.setItem('walkie_role', myRole);
-    localStorage.setItem('walkie_name', myName);
-    if (pin) localStorage.setItem('walkie_pin', pin);
-
-    switchToRadioScreen();
     // Warm up audio and ask for microphone permission during direct user gesture
     initAudio();
     requestMicrophone().catch(err => {
@@ -250,7 +286,7 @@
     if (!ws || ws.readyState !== WebSocket.OPEN) {
       connectWebSocket();
     } else {
-      sendClaimSlot();
+      sendClaimSlot(pin);
     }
   });
 
@@ -260,8 +296,7 @@
     radioScreen.style.display = 'block';
 
     badgeIcon.textContent = myRole === 'owner' ? '👑' : '📦';
-    const slotNum = mySlot.replace(/^[a-z]+_/, '');
-    badgeText.textContent = `${myRole === 'owner' ? 'OWNER' : 'STAFF'} ${slotNum} (${myName})`;
+    badgeText.textContent = `${myRole === 'owner' ? 'OWNER' : 'STAFF'} (${myName})`;
 
     if (myRole === 'owner') {
       btnMasterShift.style.display = 'block';
@@ -346,7 +381,6 @@
     connectWebSocket();
   } else {
     isLoggedIn = false;
-    loginNameInput.value = localStorage.getItem('walkie_name') || '';
     loginPinInput.value = '';
     selectRole('owner');
     connectWebSocket();
@@ -396,9 +430,9 @@
     };
   }
 
-  function sendClaimSlot() {
-    if (!ws || ws.readyState !== WebSocket.OPEN || !isLoggedIn) return;
-    const pin = localStorage.getItem('walkie_pin') || '1234';
+  function sendClaimSlot(overridePin) {
+    if (!ws || ws.readyState !== WebSocket.OPEN) return;
+    const pin = overridePin || localStorage.getItem('walkie_pin') || '';
     ws.send(JSON.stringify({
       type: 'claim_slot',
       slot: mySlot,
@@ -409,6 +443,10 @@
 
   function handleSignaling(msg) {
     if (msg.type === 'initial_state') {
+      if (Array.isArray(msg.ownerSlots)) {
+        availableOwnerSlots = msg.ownerSlots;
+        renderOwnerPills();
+      }
       if (Array.isArray(msg.staffSlots)) {
         availableStaffSlots = msg.staffSlots;
         renderStaffPills();
@@ -416,6 +454,7 @@
       currentActiveSlots = msg.activeSlots || {};
       renderRoster();
       syncShiftState(msg.globalShiftActive, msg.globalShiftOwner);
+      updatePinPlaceholder();
     } else if (msg.type === 'staff_slots_updated') {
       if (Array.isArray(msg.staffSlots)) {
         availableStaffSlots = msg.staffSlots;
@@ -429,21 +468,42 @@
       mySlot = msg.slot;
       myRole = msg.role;
       myName = msg.name;
+      isLoggedIn = true;
 
+      localStorage.setItem('walkie_logged_in', 'true');
+      localStorage.setItem('walkie_slot', mySlot);
+      localStorage.setItem('walkie_role', myRole);
+      localStorage.setItem('walkie_name', myName);
+      if (loginPinInput.value) {
+        localStorage.setItem('walkie_pin', loginPinInput.value.trim());
+      }
+
+      switchToRadioScreen();
+
+      if (Array.isArray(msg.ownerSlots)) {
+        availableOwnerSlots = msg.ownerSlots;
+        renderOwnerPills();
+      }
       if (Array.isArray(msg.staffSlots)) {
         availableStaffSlots = msg.staffSlots;
         renderStaffPills();
       }
 
       badgeIcon.textContent = myRole === 'owner' ? '👑' : '📦';
-      const slotNum = mySlot.replace(/^[a-z]+_/, '');
-      badgeText.textContent = `${myRole === 'owner' ? 'OWNER' : 'STAFF'} ${slotNum} (${myName})`;
+      badgeText.textContent = `${myRole === 'owner' ? 'OWNER' : 'STAFF'} (${myName})`;
 
       renderRoster();
       syncShiftState(msg.globalShiftActive, msg.globalShiftOwner);
     } else if (msg.type === 'slot_error') {
       alert(msg.message);
-      btnLogout.click();
+      isLoggedIn = false;
+      localStorage.removeItem('walkie_logged_in');
+      radioScreen.style.display = 'none';
+      loginScreen.style.display = 'block';
+      if (loginPinInput) {
+        loginPinInput.value = '';
+        loginPinInput.focus();
+      }
     } else if (msg.type === 'slot_evicted') {
       alert(msg.message || 'Your staff station has been removed by the Owner.');
       btnLogout.click();
@@ -534,31 +594,27 @@
 
   function renderRoster() {
     if (!rosterDots) return;
-    const ownerSlots = [
-      { id: 'owner_1', tag: 'O1', label: 'Owner 1' },
-      { id: 'owner_2', tag: 'O2', label: 'Owner 2' },
-      { id: 'owner_3', tag: 'O3', label: 'Owner 3' }
-    ];
     let html = '';
     let count = 0;
 
-    ownerSlots.forEach(slot => {
+    availableOwnerSlots.forEach(slot => {
       const isOnline = !!currentActiveSlots[slot.id];
       if (isOnline) count++;
       const isTalking = currentSpeakerSlot === slot.id;
-      html += `<div class="roster-item ${isOnline ? 'online' : ''} ${isTalking ? 'talking' : ''}" id="roster_${slot.id}" title="${isOnline ? `${currentActiveSlots[slot.id].name} (Owner)` : slot.label}"><span>${slot.tag}</span></div>`;
+      const tag = slot.label.charAt(0).toUpperCase();
+      html += `<div class="roster-item ${isOnline ? 'online' : ''} ${isTalking ? 'talking' : ''}" id="roster_${slot.id}" title="${isOnline ? `${currentActiveSlots[slot.id].name} (Owner)` : slot.label}"><span>${tag}</span></div>`;
     });
 
-    availableStaffSlots.forEach((slot, idx) => {
+    availableStaffSlots.forEach(slot => {
       const isOnline = !!currentActiveSlots[slot.id];
       if (isOnline) count++;
       const isTalking = currentSpeakerSlot === slot.id;
-      const tag = `S${idx + 1}`;
+      const tag = slot.label.charAt(0).toUpperCase();
       html += `<div class="roster-item ${isOnline ? 'online' : ''} ${isTalking ? 'talking' : ''}" id="roster_${slot.id}" title="${isOnline ? `${currentActiveSlots[slot.id].name} (Staff)` : slot.label}"><span>${tag}</span></div>`;
     });
 
     rosterDots.innerHTML = html;
-    const totalStations = ownerSlots.length + availableStaffSlots.length;
+    const totalStations = availableOwnerSlots.length + availableStaffSlots.length;
     counterText.textContent = `${count} / ${totalStations} ONLINE`;
   }
 
