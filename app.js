@@ -61,6 +61,37 @@
   const btnSaveNewPin = document.getElementById('btnSaveNewPin');
   const rosterDots = document.querySelector('.roster-dots');
 
+  // Microphone Help Modal Elements
+  const micModal = document.getElementById('micModal');
+  const btnRequestMicAgain = document.getElementById('btnRequestMicAgain');
+  const btnCloseMicModal = document.getElementById('btnCloseMicModal');
+
+  function showMicModal() {
+    if (micModal) micModal.style.display = 'flex';
+  }
+
+  function hideMicModal() {
+    if (micModal) micModal.style.display = 'none';
+  }
+
+  if (btnCloseMicModal) {
+    btnCloseMicModal.addEventListener('click', hideMicModal);
+  }
+
+  if (btnRequestMicAgain) {
+    btnRequestMicAgain.addEventListener('click', async () => {
+      hideMicModal();
+      initAudio();
+      try {
+        await requestMicrophone();
+        alert('✅ Microphone ready! You can now hold the button to talk.');
+      } catch (e) {
+        alert('❌ Microphone is still blocked. Please tap the 🔒 lock icon next to the URL in Chrome, tap Permissions -> Microphone -> Allow, then reload.');
+        showMicModal();
+      }
+    });
+  }
+
   // Owner Channel Switcher Elements
   const ownerChannelBar = document.getElementById('ownerChannelBar');
   const btnChAll = document.getElementById('btnChAll');
@@ -210,6 +241,12 @@
     if (pin) localStorage.setItem('walkie_pin', pin);
 
     switchToRadioScreen();
+    // Warm up audio and ask for microphone permission during direct user gesture
+    initAudio();
+    requestMicrophone().catch(err => {
+      console.log('Login mic request info:', err);
+    });
+
     if (!ws || ws.readyState !== WebSocket.OPEN) {
       connectWebSocket();
     } else {
@@ -673,8 +710,8 @@
         staffShiftStatus.textContent = 'ONLINE';
       }
 
-      pttButton.disabled = false;
-      btnLockMic.disabled = false;
+      pttButton.classList.remove('shift-locked');
+      btnLockMic.classList.remove('shift-locked');
 
       initAudio();
       try {
@@ -701,8 +738,8 @@
         staffShiftStatus.textContent = 'LOCKED';
       }
 
-      pttButton.disabled = true;
-      btnLockMic.disabled = true;
+      pttButton.classList.add('shift-locked');
+      btnLockMic.classList.add('shift-locked');
 
       playChime(783.99, 659.25, 523.25); // Shutdown chime
     }
@@ -773,21 +810,28 @@
   }
 
   async function requestMicrophone() {
-    if (micStream) return;
+    if (micStream) return micStream;
     if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
       throw new Error('Microphone not supported or HTTPS required.');
     }
 
-    micStream = await navigator.mediaDevices.getUserMedia({
-      audio: {
-        channelCount: 1,
-        sampleRate: 16000,
-        echoCancellation: true,
-        noiseSuppression: true,
-        autoGainControl: true
-      },
-      video: false
-    });
+    try {
+      micStream = await navigator.mediaDevices.getUserMedia({
+        audio: {
+          channelCount: 1,
+          sampleRate: 16000,
+          echoCancellation: true,
+          noiseSuppression: true,
+          autoGainControl: true
+        },
+        video: false
+      });
+    } catch (err) {
+      console.warn('Microphone permission request failed:', err);
+      throw err;
+    }
+
+    if (!audioCtx) initAudio();
 
     micSource = audioCtx.createMediaStreamSource(micStream);
     // 1024 samples at 16kHz = 64ms latency per packet (ultra-fast transmission)
@@ -873,28 +917,85 @@
   // PUSH-TO-TALK LOGIC & AUTHENTIC RADIO SOUNDS
   // ========================================================================
 
-  pttButton.addEventListener('mousedown', startTransmitting);
-  pttButton.addEventListener('mouseup', stopTransmitting);
-  pttButton.addEventListener('mouseleave', () => { if (!isMicLocked) stopTransmitting(); });
+  let activePointerId = null;
 
-  pttButton.addEventListener('touchstart', (e) => {
+  // Modern Pointer Events for rock-solid touch and holding on mobile
+  pttButton.addEventListener('pointerdown', (e) => {
     e.preventDefault();
-    startTransmitting();
-  }, { passive: false });
+    activePointerId = e.pointerId;
+    try {
+      pttButton.setPointerCapture(e.pointerId);
+    } catch (err) {}
+    startTransmitting(e);
+  });
 
-  pttButton.addEventListener('touchend', (e) => {
+  pttButton.addEventListener('pointerup', (e) => {
     e.preventDefault();
+    if (activePointerId !== null) {
+      try {
+        if (pttButton.hasPointerCapture(activePointerId)) {
+          pttButton.releasePointerCapture(activePointerId);
+        }
+      } catch (err) {}
+      activePointerId = null;
+    }
     if (!isMicLocked) stopTransmitting();
-  }, { passive: false });
+  });
 
-  async function startTransmitting() {
-    if (!isShiftActive || isTransmitting) return;
+  pttButton.addEventListener('pointercancel', (e) => {
+    e.preventDefault();
+    if (activePointerId !== null) {
+      try {
+        if (pttButton.hasPointerCapture(activePointerId)) {
+          pttButton.releasePointerCapture(activePointerId);
+        }
+      } catch (err) {}
+      activePointerId = null;
+    }
+    if (!isMicLocked) stopTransmitting();
+  });
+
+  // Prevent mobile long-press context menus
+  pttButton.addEventListener('contextmenu', (e) => {
+    e.preventDefault();
+    return false;
+  });
+
+  async function startTransmitting(e) {
+    if (e && e.cancelable) e.preventDefault();
+
+    // If shift is not started, guide user immediately
+    if (!isShiftActive) {
+      if (myRole === 'owner') {
+        const wantStart = confirm('⚠️ SHIFT IS CURRENTLY STOPPED.\n\nTap OK to START SHIFT and open walkie-talkie broadcast.');
+        if (wantStart && ws && ws.readyState === WebSocket.OPEN) {
+          ws.send(JSON.stringify({ type: 'set_shift', active: true }));
+        }
+      } else {
+        alert('⚠️ SHIFT IS STOPPED!\n\nOwner needs to start the shift before staff can speak.\nPlease ask the Owner (Madhav) to tap "START SHIFT".');
+      }
+      return;
+    }
+
+    if (isTransmitting) return;
 
     if (audioCtx && audioCtx.state === 'suspended') {
-      audioCtx.resume();
+      audioCtx.resume().catch(() => {});
     }
+
     if (!micStream) {
-      await requestMicrophone();
+      try {
+        await requestMicrophone();
+      } catch (err) {
+        console.error('Mic error:', err);
+        showMicModal();
+        return;
+      }
+    }
+
+    if (!micStream) {
+      showMicModal();
+      return;
     }
 
     isTransmitting = true;
@@ -903,8 +1004,9 @@
     speakerRing.className = 'speaker-state-ring tx';
     pttStatusText.textContent = 'TRANSMITTING...';
 
+    const chTag = (currentChannel === 'owners' && myRole === 'owner') ? 'CH-02 PRIVATE' : 'CH-01 ALL';
     lcdSpeakerName.textContent = myName.toUpperCase();
-    lcdSpeakerRole.textContent = `🎙️ YOU ARE TRANSMITTING (${myRole === 'owner' ? 'OWNER' : 'STAFF'})...`;
+    lcdSpeakerRole.textContent = `🎙️ TRANSMITTING [${chTag}]...`;
     lcdSpeakerRole.style.color = '#ff1744';
 
     if (navigator.vibrate) navigator.vibrate([40]);
@@ -949,7 +1051,17 @@
 
   // Hands-Free Lock Mic
   btnLockMic.addEventListener('click', () => {
-    if (!isShiftActive) return;
+    if (!isShiftActive) {
+      if (myRole === 'owner') {
+        const wantStart = confirm('⚠️ SHIFT IS CURRENTLY STOPPED.\n\nTap OK to START SHIFT and open walkie-talkie broadcast.');
+        if (wantStart && ws && ws.readyState === WebSocket.OPEN) {
+          ws.send(JSON.stringify({ type: 'set_shift', active: true }));
+        }
+      } else {
+        alert('⚠️ SHIFT IS STOPPED!\n\nOwner needs to start the shift before staff can speak.');
+      }
+      return;
+    }
 
     isMicLocked = !isMicLocked;
     if (isMicLocked) {
