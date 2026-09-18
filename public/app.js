@@ -311,12 +311,12 @@
   });
 
   // Check saved session on startup
-  if (localStorage.getItem('walkie_app_ver') !== 'v11') {
+  if (localStorage.getItem('walkie_app_ver') !== 'v12') {
     localStorage.removeItem('walkie_logged_in');
     localStorage.removeItem('walkie_role');
     localStorage.removeItem('walkie_slot');
     localStorage.removeItem('walkie_name');
-    localStorage.setItem('walkie_app_ver', 'v11');
+    localStorage.setItem('walkie_app_ver', 'v12');
     if ('caches' in window) {
       caches.keys().then(keys => {
         keys.forEach(k => caches.delete(k));
@@ -488,6 +488,12 @@
         }
         // Play priority alert chime (880Hz -> 1320Hz)
         playOwnerPriorityAlertTone();
+
+        // Signal Android to duck/lower background music (Spotify) during owner speech
+        if (bgKeepAliveAudio) {
+          bgKeepAliveAudio.currentTime = 0;
+          bgKeepAliveAudio.play().catch(() => {});
+        }
       } else {
         // Normal staff voice
         if (voiceBoostGain && audioCtx) {
@@ -534,8 +540,10 @@
       if (voiceBoostGain && audioCtx) {
         voiceBoostGain.gain.setValueAtTime(1.0, audioCtx.currentTime);
       }
+      // Immediately stop audio tag so Android releases focus and restores Spotify song volume!
       if (bgKeepAliveAudio && !bgKeepAliveAudio.paused) {
         bgKeepAliveAudio.pause();
+        bgKeepAliveAudio.currentTime = 0;
       }
       if ('mediaSession' in navigator) {
         navigator.mediaSession.playbackState = 'none';
@@ -870,6 +878,11 @@
       voiceCompressor.connect(speakerGainNode);
       speakerGainNode.connect(audioCtx.destination);
 
+      if (bgKeepAliveAudio) {
+        bgKeepAliveAudio.src = 'silent.wav';
+        bgKeepAliveAudio.volume = 0.05;
+        bgKeepAliveAudio.pause();
+      }
     }
     if (audioCtx.state === 'suspended') {
       audioCtx.resume().catch(() => {});
