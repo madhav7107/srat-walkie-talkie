@@ -11,7 +11,7 @@
   <link rel="manifest" href="manifest.json">
   <link rel="icon" type="image/png" href="icon-192.png">
   <link rel="apple-touch-icon" href="icon-192.png">
-  <link rel="stylesheet" href="style.css?v=13">
+  <link rel="stylesheet" href="style.css?v=14">
 </head>
 <body>
 
@@ -107,6 +107,9 @@
           <span class="station-text" id="badgeText">OWNER 1 (Boss)</span>
         </div>
         <div class="header-action-buttons">
+          <button type="button" class="btn-battery-guide" id="btnOpenBatteryModal" title="24-Hour Non-Stop Setup Guide" style="background: #102619; border: 1px solid #00e676; color: #00e676; padding: 5px 9px; border-radius: 6px; font-weight: 700; font-size: 0.72rem; cursor: pointer;">
+            🔋 24H
+          </button>
           <button type="button" class="btn-owner-settings" id="btnOwnerSettings" style="display: none;" title="Owner Settings (Manage Staff & PIN)">
             ⚙️ SETTINGS
           </button>
@@ -326,6 +329,46 @@
     </div>
   </div>
 
-  <script src="app.js?v=13"></script>
+  <!-- 24-Hour Non-Stop Background Setup Modal -->
+  <div class="settings-modal-overlay" id="batteryModal" style="display: none; z-index: 9999;">
+    <div class="settings-modal-card" style="max-width: 420px; text-align: center; border: 2px solid #00e676; box-shadow: 0 0 25px rgba(0,230,118,0.25);">
+      <div class="settings-modal-header" style="justify-content: center; border-bottom: 1px solid rgba(0,230,118,0.3);">
+        <div class="settings-modal-title" style="color: #00e676;">
+          <span class="settings-title-icon">🔋</span>
+          <span>૨૪ કલાક બેકગ્રાઉન્ડ સેટઅપ (24H MODE)</span>
+        </div>
+      </div>
+      <div style="padding: 16px 14px; font-size: 0.88rem; line-height: 1.5; color: #cfd8dc;">
+        <p style="font-weight: 700; color: #fff; margin-bottom: 12px; font-size: 1rem;">
+          સ્ક્રીન બંધ હોય કે તમે PDF / WhatsApp વાપરતા હોવ, તો પણ વોકી-ટોકી ૨૪ કલાક ચાલુ રહે તે માટે આ સેટિંગ કરી લો:
+        </p>
+
+        <!-- Step 1: Notifications -->
+        <div style="margin-bottom: 12px; text-align: left; background: rgba(0,0,0,0.4); padding: 12px; border-radius: 8px; border-left: 4px solid #00e676;">
+          <div style="font-weight: 700; color: #00e676; margin-bottom: 4px;">૧. નોટિફિકેશન મંજૂર કરો (Notification):</div>
+          <div style="color: #b0bec5; font-size: 0.82rem; margin-bottom: 8px;">આનાથી ફોન બેકગ્રાઉન્ડમાં વોકી-ટોકીને ક્યારેય ઊંઘવા (Sleep) નહીં દે.</div>
+          <button type="button" id="btnModalAllowNotif" style="width: 100%; padding: 8px; background: #133a25; border: 1px solid #00e676; color: #00e676; border-radius: 6px; font-weight: 700; font-size: 0.85rem; cursor: pointer;">
+            🔔 NOTIFICATION ALLOW કરો
+          </button>
+        </div>
+
+        <!-- Step 2: Battery Settings -->
+        <div style="margin-bottom: 14px; text-align: left; background: rgba(0,0,0,0.4); padding: 12px; border-radius: 8px; border-left: 4px solid #ffd54f;">
+          <div style="font-weight: 700; color: #ffd54f; margin-bottom: 6px;">૨. બેટરી સેટિંગ (Battery Setting) ⭐ સૌથી મહત્વનું:</div>
+          <div style="font-size: 0.82rem; color: #eceff1; line-height: 1.6;">
+            • ફોનના <b>Settings ➔ Apps</b> માં જાઓ.<br>
+            • <b>Chrome</b> (અથવા <b>SRAT Walkie Talkie</b>) પર ક્લિક કરો.<br>
+            • <b>Battery</b> માં જઈને <b>"Unrestricted"</b> (અથવા <b>"No restrictions"</b> / કોઈ પ્રતિબંધ નહીં) સિલેક્ટ કરી લો.
+          </div>
+        </div>
+
+        <button type="button" id="btnDoneBatteryModal" style="width: 100%; padding: 12px; background: linear-gradient(135deg, #00e676, #00a152); border: none; border-radius: 8px; color: #000; font-weight: 800; font-size: 1rem; cursor: pointer;">
+          ✅ બરાબર, સમજાઈ ગયું (GOT IT)
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <script src="app.js?v=14"></script>
 </body>
 </html>
