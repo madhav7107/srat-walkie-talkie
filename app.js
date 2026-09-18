@@ -209,9 +209,9 @@
     myName = targetName;
     myRole = 'user';
 
-    // Warm up audio and ask for microphone permission during direct user gesture
+    // Warm up audio and prime microphone permission without locking mic or interrupting Spotify
     initAudio();
-    requestMicrophone().catch(err => {
+    warmUpMicrophonePermission().catch(err => {
       console.log('Login mic request info:', err);
     });
 
@@ -311,12 +311,12 @@
   });
 
   // Check saved session on startup
-  if (localStorage.getItem('walkie_app_ver') !== 'v10') {
+  if (localStorage.getItem('walkie_app_ver') !== 'v11') {
     localStorage.removeItem('walkie_logged_in');
     localStorage.removeItem('walkie_role');
     localStorage.removeItem('walkie_slot');
     localStorage.removeItem('walkie_name');
-    localStorage.setItem('walkie_app_ver', 'v10');
+    localStorage.setItem('walkie_app_ver', 'v11');
     if ('caches' in window) {
       caches.keys().then(keys => {
         keys.forEach(k => caches.delete(k));
@@ -480,29 +480,18 @@
         audioCtx.resume();
       }
 
-      // 🔊 OWNER VOICE BOOST & AUTO-DUCKING OF SONGS/MUSIC:
+      // 🔊 OWNER VOICE BOOST OVER BLUETOOTH & MUSIC:
       if (isOwnerSpeaker) {
-        // Boost owner voice by 2.4x (+8 dB) through DynamicsCompressor
+        // Boost owner voice by 2.4x (+8 dB) through DynamicsCompressor & 2.8kHz Presence Filter
         if (voiceBoostGain && audioCtx) {
           voiceBoostGain.gain.setValueAtTime(2.4, audioCtx.currentTime);
         }
-        // Force Android audio manager to duck background music players
-        if ('mediaSession' in navigator) {
-          navigator.mediaSession.playbackState = 'playing';
-        }
-        bgKeepAliveAudio.volume = 1.0;
-        if (bgKeepAliveAudio.paused && isShiftActive) {
-          bgKeepAliveAudio.play().catch(() => {});
-        }
-        // Play priority tone to alert worker and trigger transient ducking
+        // Play priority alert chime (880Hz -> 1320Hz)
         playOwnerPriorityAlertTone();
       } else {
         // Normal staff voice
         if (voiceBoostGain && audioCtx) {
           voiceBoostGain.gain.setValueAtTime(1.1, audioCtx.currentTime);
-        }
-        if (bgKeepAliveAudio.paused && isShiftActive) {
-          bgKeepAliveAudio.play().catch(() => {});
         }
         playRemoteSquelch();
       }
@@ -541,12 +530,15 @@
       currentSpeakerName = '';
       currentSpeakerSlot = '';
 
-      // Reset voice boost and restore background music volume
+      // Reset voice boost to normal
       if (voiceBoostGain && audioCtx) {
         voiceBoostGain.gain.setValueAtTime(1.0, audioCtx.currentTime);
       }
+      if (bgKeepAliveAudio && !bgKeepAliveAudio.paused) {
+        bgKeepAliveAudio.pause();
+      }
       if ('mediaSession' in navigator) {
-        navigator.mediaSession.playbackState = 'paused';
+        navigator.mediaSession.playbackState = 'none';
       }
 
       // Remote speaker ended -> Roger Beep
@@ -774,9 +766,6 @@
       if (btnLockMic) btnLockMic.classList.remove('shift-locked');
 
       initAudio();
-      try {
-        await requestMicrophone();
-      } catch (e) {}
       enableBackgroundAudio();
       requestWakeLock();
     } else {
@@ -881,36 +870,32 @@
       voiceCompressor.connect(speakerGainNode);
       speakerGainNode.connect(audioCtx.destination);
 
-      // Create live media stream destination to eliminate Android scrubber/seekbar dot
-      // and feed live incoming speech to HTML5 audio element for system audio ducking
-      try {
-        liveStreamDest = audioCtx.createMediaStreamDestination();
-        const carrierOsc = audioCtx.createOscillator();
-        const carrierGain = audioCtx.createGain();
-        carrierOsc.type = 'sine';
-        carrierOsc.frequency.value = 40;
-        carrierGain.gain.value = 0.0001; // completely inaudible
-        carrierOsc.connect(carrierGain);
-        carrierGain.connect(audioCtx.destination);
-        carrierGain.connect(liveStreamDest);
-        carrierOsc.start();
-
-        // Feed compressed speech into live stream destination so <audio> tag plays it
-        voiceCompressor.connect(liveStreamDest);
-
-        if ('srcObject' in bgKeepAliveAudio) {
-          bgKeepAliveAudio.srcObject = liveStreamDest.stream;
-          bgKeepAliveAudio.removeAttribute('src');
-        } else {
-          bgKeepAliveAudio.src = 'silent.wav';
-        }
-      } catch (e) {
-        console.log('Live stream setup fallback:', e);
-        bgKeepAliveAudio.src = 'silent.wav';
-      }
     }
     if (audioCtx.state === 'suspended') {
       audioCtx.resume().catch(() => {});
+    }
+  }
+
+  // Prime microphone permission once on user gesture without holding mic stream open
+  async function warmUpMicrophonePermission() {
+    if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) return;
+    try {
+      const tempStream = await navigator.mediaDevices.getUserMedia({
+        audio: {
+          channelCount: 1,
+          sampleRate: 16000,
+          echoCancellation: true,
+          noiseSuppression: true,
+          autoGainControl: true
+        },
+        video: false
+      });
+      // CRITICAL: Stop tracks immediately so Bluetooth does NOT switch to call mode,
+      // allowing Spotify and background music to play 100% uninterrupted!
+      tempStream.getTracks().forEach(track => track.stop());
+      console.log('✅ Microphone permission primed and freed for Spotify playback.');
+    } catch (err) {
+      console.log('Mic prime check:', err);
     }
   }
 
@@ -962,20 +947,27 @@
     };
 
     micSource.connect(scriptProcessor);
-    scriptProcessor.connect(audioCtx.destination);
+    // Use muted gain sink to prevent mic audio echo loopback into local speakers/earphones
+    const micSinkGain = audioCtx.createGain();
+    micSinkGain.gain.value = 0;
+    scriptProcessor.connect(micSinkGain);
+    micSinkGain.connect(audioCtx.destination);
+    return micStream;
   }
 
   function closeMicrophone() {
     if (scriptProcessor) {
-      scriptProcessor.disconnect();
+      try { scriptProcessor.disconnect(); } catch (e) {}
       scriptProcessor = null;
     }
     if (micSource) {
-      micSource.disconnect();
+      try { micSource.disconnect(); } catch (e) {}
       micSource = null;
     }
     if (micStream) {
-      micStream.getTracks().forEach(track => track.stop());
+      try {
+        micStream.getTracks().forEach(track => track.stop());
+      } catch (e) {}
       micStream = null;
     }
   }
@@ -984,9 +976,6 @@
     if (!audioCtx) initAudio();
     if (audioCtx && audioCtx.state === 'suspended') {
       audioCtx.resume().catch(() => {});
-    }
-    if (bgKeepAliveAudio.paused && isShiftActive) {
-      bgKeepAliveAudio.play().catch(() => {});
     }
 
     const pcm16 = new Int16Array(arrayBuffer);
@@ -1153,6 +1142,7 @@
     if (!isTransmitting) return;
 
     isTransmitting = false;
+    closeMicrophone();
     if (isMicLocked) {
       isMicLocked = false;
       if (btnLockMic) {
@@ -1375,13 +1365,11 @@
   // Media Session Controls for Notification Bar & Lock Screen
   function enableBackgroundAudio() {
     if (!audioCtx) initAudio();
-    bgKeepAliveAudio.play().catch(() => {});
-    updateMediaSession();
     updatePersistentNotification();
   }
 
   function disableBackgroundAudio() {
-    bgKeepAliveAudio.pause();
+    if (bgKeepAliveAudio && !bgKeepAliveAudio.paused) bgKeepAliveAudio.pause();
     if ('mediaSession' in navigator) {
       navigator.mediaSession.metadata = null;
       navigator.mediaSession.playbackState = 'none';
@@ -1391,6 +1379,12 @@
 
   function updateMediaSession() {
     if (!('mediaSession' in navigator) || !isShiftActive) return;
+
+    // In idle standby, do NOT override Spotify or music players
+    if (!isTransmitting && !currentSpeakerName) {
+      navigator.mediaSession.playbackState = 'none';
+      return;
+    }
 
     let displayTitle = '🟢 STANDBY - Tap ▶ to Talk';
     let displayAlbum = '🎙️ SRAT - WALKIE TALKIE (PTT)';
@@ -1416,8 +1410,6 @@
       ]
     });
 
-    // When transmitting, playbackState is 'playing' -> Android shows round PAUSE (⏸) button to stop talking.
-    // When listening/standby, playbackState is 'paused' -> Android shows round PLAY (▶) button to talk!
     navigator.mediaSession.playbackState = isTransmitting ? 'playing' : 'paused';
 
     // Clear position state so Android never renders a progress line or moving dot
