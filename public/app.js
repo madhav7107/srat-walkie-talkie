@@ -311,12 +311,12 @@
   });
 
   // Check saved session on startup
-  if (localStorage.getItem('walkie_app_ver') !== 'v12') {
+  if (localStorage.getItem('walkie_app_ver') !== 'v13') {
     localStorage.removeItem('walkie_logged_in');
     localStorage.removeItem('walkie_role');
     localStorage.removeItem('walkie_slot');
     localStorage.removeItem('walkie_name');
-    localStorage.setItem('walkie_app_ver', 'v12');
+    localStorage.setItem('walkie_app_ver', 'v13');
     if ('caches' in window) {
       caches.keys().then(keys => {
         keys.forEach(k => caches.delete(k));
@@ -482,18 +482,13 @@
 
       // 🔊 OWNER VOICE BOOST OVER BLUETOOTH & MUSIC:
       if (isOwnerSpeaker) {
-        // Boost owner voice by 2.4x (+8 dB) through DynamicsCompressor & 2.8kHz Presence Filter
+        // Boost owner voice by 2.8x (+9 dB) through DynamicsCompressor & 2.8kHz Presence Filter
+        // Web Audio API mixes seamlessly over Spotify WITHOUT pausing or stopping songs!
         if (voiceBoostGain && audioCtx) {
-          voiceBoostGain.gain.setValueAtTime(2.4, audioCtx.currentTime);
+          voiceBoostGain.gain.setValueAtTime(2.8, audioCtx.currentTime);
         }
         // Play priority alert chime (880Hz -> 1320Hz)
         playOwnerPriorityAlertTone();
-
-        // Signal Android to duck/lower background music (Spotify) during owner speech
-        if (bgKeepAliveAudio) {
-          bgKeepAliveAudio.currentTime = 0;
-          bgKeepAliveAudio.play().catch(() => {});
-        }
       } else {
         // Normal staff voice
         if (voiceBoostGain && audioCtx) {
