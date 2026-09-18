@@ -90,6 +90,55 @@
     });
   }
 
+  // 24-Hour Non-Stop Background Mode Setup Elements
+  const batteryModal = document.getElementById('batteryModal');
+  const btnOpenBatteryModal = document.getElementById('btnOpenBatteryModal');
+  const btnDoneBatteryModal = document.getElementById('btnDoneBatteryModal');
+  const btnModalAllowNotif = document.getElementById('btnModalAllowNotif');
+
+  function showBatteryModal() {
+    if (batteryModal) batteryModal.style.display = 'flex';
+  }
+
+  function hideBatteryModal() {
+    if (batteryModal) batteryModal.style.display = 'none';
+  }
+
+  if (btnOpenBatteryModal) {
+    btnOpenBatteryModal.addEventListener('click', showBatteryModal);
+  }
+
+  if (btnDoneBatteryModal) {
+    btnDoneBatteryModal.addEventListener('click', () => {
+      localStorage.setItem('walkie_bg_guide_seen_v14', 'true');
+      hideBatteryModal();
+    });
+  }
+
+  if (batteryModal) {
+    batteryModal.addEventListener('click', (e) => {
+      if (e.target === batteryModal) hideBatteryModal();
+    });
+  }
+
+  if (btnModalAllowNotif) {
+    btnModalAllowNotif.addEventListener('click', async () => {
+      if ('Notification' in window) {
+        try {
+          const perm = await Notification.requestPermission();
+          if (perm === 'granted') {
+            btnModalAllowNotif.textContent = '✅ નોટિફિકેશન ALLOW થઈ ગયું!';
+            btnModalAllowNotif.style.background = '#00e676';
+            btnModalAllowNotif.style.color = '#000';
+            updatePersistentNotification();
+          } else {
+            alert('Notification not granted. You can also allow it by tapping the lock icon next to the URL in Chrome.');
+          }
+        } catch (e) {}
+      }
+    });
+  }
+
   // Owner Channel Switcher Elements
   const ownerChannelBar = document.getElementById('ownerChannelBar');
   const btnChAll = document.getElementById('btnChAll');
@@ -260,6 +309,11 @@
     initAudio();
     enableBackgroundAudio();
     requestWakeLock();
+
+    // Automatically show 24H Background Setup Guide the first time user enters
+    if (!localStorage.getItem('walkie_bg_guide_seen_v14')) {
+      setTimeout(showBatteryModal, 700);
+    }
   }
 
   function setChannel(ch) {
@@ -311,12 +365,12 @@
   });
 
   // Check saved session on startup
-  if (localStorage.getItem('walkie_app_ver') !== 'v13') {
+  if (localStorage.getItem('walkie_app_ver') !== 'v14') {
     localStorage.removeItem('walkie_logged_in');
     localStorage.removeItem('walkie_role');
     localStorage.removeItem('walkie_slot');
     localStorage.removeItem('walkie_name');
-    localStorage.setItem('walkie_app_ver', 'v13');
+    localStorage.setItem('walkie_app_ver', 'v14');
     if ('caches' in window) {
       caches.keys().then(keys => {
         keys.forEach(k => caches.delete(k));
