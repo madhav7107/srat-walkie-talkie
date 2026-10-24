@@ -1,5 +1,5 @@
 // ========================================================================
-// KWT - Kotecha Family Walkie-Talkie (Client Core with Madhav Master Admin)
+// KWT - Kotecha Family Walkie-Talkie (English Client Core)
 // ========================================================================
 (() => {
   // DOM Elements - Screens
@@ -41,23 +41,22 @@
 
   // Family Members Definition
   const FAMILY_MEMBERS = [
-    { id: "mem_1", name: "Mansukhbhai", icon: "👨‍🦳", relation: "વડીલ" },
-    { id: "mem_2", name: "Sudhaben", icon: "👵", relation: "વડીલ" },
-    { id: "mem_3", name: "Nimeeshbhai", icon: "👨", relation: "પરિવાર" },
-    { id: "mem_4", name: "Umangben", icon: "👩", relation: "પરિવાર" },
-    { id: "mem_5", name: "Kalpeshbhai", icon: "👨", relation: "પરિવાર" },
-    { id: "mem_6", name: "Kajalben", icon: "👩", relation: "પરિવાર" },
-    { id: "mem_7", name: "Madhav", icon: "👦", relation: "પરિવાર" }
+    { id: "mem_1", name: "Mansukhbhai", icon: "👨‍🦳", relation: "Elder" },
+    { id: "mem_2", name: "Sudhaben", icon: "👵", relation: "Elder" },
+    { id: "mem_3", name: "Nimeeshbhai", icon: "👨", relation: "Family" },
+    { id: "mem_4", name: "Umangben", icon: "👩", relation: "Family" },
+    { id: "mem_5", name: "Kalpeshbhai", icon: "👨", relation: "Family" },
+    { id: "mem_6", name: "Kajalben", icon: "👩", relation: "Family" },
+    { id: "mem_7", name: "Madhav", icon: "👦", relation: "Super Admin" }
   ];
 
   // State
-  let myId = localStorage.getItem('kwt_member_id') || 'mem_7';
-  let myName = localStorage.getItem('kwt_member_name') || 'Madhav';
-  let myIcon = '👦';
+  let myId = localStorage.getItem('kwt_member_id') || 'mem_1';
+  let myName = localStorage.getItem('kwt_member_name') || 'Mansukhbhai';
   let isLoggedIn = false;
   let isTransmitting = false;
   let isMuted = false;
-  let isLineActive = true; // Controlled by Madhav
+  let isLineActive = true;
   let ws = null;
   let reconnectTimer = null;
   let activeSlots = {};
@@ -81,8 +80,6 @@
         cards.forEach(c => c.classList.remove('active'));
         card.classList.add('active');
         myName = card.getAttribute('data-name');
-        const iconSpan = card.querySelector('.member-icon');
-        if (iconSpan) myIcon = iconSpan.textContent.trim();
       }
 
       card.addEventListener('click', () => {
@@ -90,15 +87,16 @@
         card.classList.add('active');
         myId = card.getAttribute('data-id');
         myName = card.getAttribute('data-name');
-        const iconSpan = card.querySelector('.member-icon');
-        if (iconSpan) myIcon = iconSpan.textContent.trim();
         if (loginError) loginError.style.display = 'none';
+        if (loginPinInput) {
+          loginPinInput.value = '';
+          loginPinInput.focus();
+        }
       });
     });
 
-    const savedPin = localStorage.getItem('kwt_pin');
-    if (savedPin && loginPinInput) {
-      loginPinInput.value = savedPin;
+    if (loginPinInput) {
+      loginPinInput.value = ''; // Always blank on load
     }
   }
 
@@ -113,12 +111,16 @@
       if (isOnline) onlineCount++;
       const isSpeaking = (currentSpeakerSlot === mem.id) || (isTransmitting && mem.id === myId);
 
+      let statusLabel = '⚪ Offline';
+      if (isSpeaking) statusLabel = '📢 Speaking';
+      else if (isOnline) statusLabel = '🟢 Online';
+
       html += `
         <div class="roster-card ${isOnline ? 'online' : 'offline'} ${isSpeaking ? 'speaking' : ''}" id="roster_${mem.id}">
           <div class="roster-avatar">${mem.icon}</div>
           <div class="roster-meta">
             <span class="roster-name">${mem.name}</span>
-            <span class="roster-status-lbl">${isSpeaking ? '📢 બોલે છે' : (isOnline ? '🟢 ઓનલાઈન' : '⚪ ઓફલાઈન')}</span>
+            <span class="roster-status-lbl">${statusLabel}</span>
           </div>
           <span class="status-indicator-dot"></span>
         </div>
@@ -127,7 +129,7 @@
 
     rosterGrid.innerHTML = html;
     if (counterText) {
-      counterText.textContent = `${onlineCount} / ${FAMILY_MEMBERS.length} હાજર`;
+      counterText.textContent = `${onlineCount} / ${FAMILY_MEMBERS.length} Online`;
     }
   }
 
@@ -142,16 +144,16 @@
       if (btnUrgentAlert) btnUrgentAlert.disabled = true;
 
       if (lcdMainStatus) {
-        lcdMainStatus.innerHTML = '⛔ લાઈન બંધ છે (માધવ દ્વારા લૉક)';
+        lcdMainStatus.innerHTML = '⛔ Channel Locked by Madhav';
       }
       if (lcdSubStatus) {
-        lcdSubStatus.textContent = 'માધવ લાઈન ચાલુ કરશે ત્યારે જ વાત થશે';
+        lcdSubStatus.textContent = 'Voice line is disabled. Waiting for Madhav to unlock.';
       }
-      if (pttMainLabel) pttMainLabel.textContent = 'લાઈન બંધ છે';
-      if (pttSubLabel) pttSubLabel.textContent = 'માધવ દ્વારા લૉક';
+      if (pttMainLabel) pttMainLabel.textContent = 'LINE LOCKED';
+      if (pttSubLabel) pttSubLabel.textContent = 'Locked by Madhav';
 
       if (masterToggleIcon) masterToggleIcon.textContent = '🔴';
-      if (masterToggleText) masterToggleText.textContent = 'લાઈન બંધ છે (ચાલુ કરવા દબાવો)';
+      if (masterToggleText) masterToggleText.textContent = 'LINE IS LOCKED (TAP TO UNLOCK)';
       if (btnMasterToggle) btnMasterToggle.className = 'btn-master-toggle line-locked';
       if (lcdScreen) lcdScreen.classList.add('line-off');
 
@@ -165,14 +167,14 @@
       if (btnUrgentAlert) btnUrgentAlert.disabled = false;
 
       if (!currentSpeakerSlot) {
-        if (lcdMainStatus) lcdMainStatus.innerHTML = '🟢 લાઈન તૈયાર છે (શાંત છે)';
-        if (lcdSubStatus) lcdSubStatus.textContent = 'વાત કરવા માટે નીચેનું બટન દબાવી રાખો';
+        if (lcdMainStatus) lcdMainStatus.innerHTML = '🟢 Channel is Ready & Idle';
+        if (lcdSubStatus) lcdSubStatus.textContent = 'Press and hold button below to talk';
       }
-      if (pttMainLabel) pttMainLabel.textContent = 'દબાવી રાખો';
-      if (pttSubLabel) pttSubLabel.textContent = 'અને બોલો';
+      if (pttMainLabel) pttMainLabel.textContent = 'HOLD TO TALK';
+      if (pttSubLabel) pttSubLabel.textContent = 'Release to Listen';
 
       if (masterToggleIcon) masterToggleIcon.textContent = '🟢';
-      if (masterToggleText) masterToggleText.textContent = 'લાઈન ચાલુ છે (બંધ કરવા દબાવો)';
+      if (masterToggleText) masterToggleText.textContent = 'LINE IS ACTIVE (TAP TO LOCK)';
       if (btnMasterToggle) btnMasterToggle.className = 'btn-master-toggle line-active';
       if (lcdScreen) lcdScreen.classList.remove('line-off');
     }
@@ -375,9 +377,9 @@
     };
   }
 
-  function sendClaimSlot() {
+  function sendClaimSlot(customPin) {
     if (!ws || ws.readyState !== WebSocket.OPEN) return;
-    const pin = (loginPinInput ? loginPinInput.value : '') || localStorage.getItem('kwt_pin') || '6880';
+    const pin = customPin || (loginPinInput ? loginPinInput.value : '') || '';
     ws.send(JSON.stringify({
       type: 'claim_slot',
       slot: myId,
@@ -403,7 +405,7 @@
       switchToRadioScreen();
     } else if (msg.type === 'slot_error') {
       if (loginError) {
-        loginError.textContent = msg.message || 'ખોટો PIN છે!';
+        loginError.textContent = msg.message || 'Incorrect Security PIN!';
         loginError.style.display = 'block';
       }
       switchToLoginScreen();
@@ -414,10 +416,10 @@
       currentSpeakerSlot = msg.senderSlot;
       renderRoster();
       if (lcdMainStatus) {
-        lcdMainStatus.innerHTML = `📢 <strong>${msg.senderName}</strong> બોલી રહ્યા છે...`;
+        lcdMainStatus.innerHTML = `📢 <strong>${msg.senderName}</strong> is speaking...`;
       }
       if (lcdSubStatus) {
-        lcdSubStatus.textContent = 'ધ્યાનથી સાંભળો';
+        lcdSubStatus.textContent = 'Listen carefully';
       }
       if (lcdScreen) lcdScreen.classList.add('receiving');
       if (audioWaveBars) audioWaveBars.classList.add('active');
@@ -425,8 +427,8 @@
       currentSpeakerSlot = null;
       renderRoster();
       if (isLineActive) {
-        if (lcdMainStatus) lcdMainStatus.innerHTML = '🟢 લાઈન તૈયાર છે (શાંત છે)';
-        if (lcdSubStatus) lcdSubStatus.textContent = 'વાત કરવા માટે નીચેનું બટન દબાવી રાખો';
+        if (lcdMainStatus) lcdMainStatus.innerHTML = '🟢 Channel is Ready & Idle';
+        if (lcdSubStatus) lcdSubStatus.textContent = 'Press and hold button below to talk';
       }
       if (lcdScreen) lcdScreen.classList.remove('receiving');
       if (audioWaveBars) audioWaveBars.classList.remove('active');
@@ -435,17 +437,17 @@
       if (msg.bellType === 'chai') {
         playChaiBell();
         if (lcdMainStatus) {
-          lcdMainStatus.innerHTML = `☕ <strong>${msg.senderName}</strong>: ચા / જમવાનો સમય!`;
+          lcdMainStatus.innerHTML = `☕ <strong>${msg.senderName}</strong>: Tea / Meal Bell!`;
         }
       } else {
         playUrgentAlert();
         if (lcdMainStatus) {
-          lcdMainStatus.innerHTML = `🚨 <strong>${msg.senderName}</strong>: ઇમરજન્સી એલર્ટ!`;
+          lcdMainStatus.innerHTML = `🚨 <strong>${msg.senderName}</strong>: Urgent Alert!`;
         }
       }
       setTimeout(() => {
         if (!currentSpeakerSlot && lcdMainStatus && isLineActive) {
-          lcdMainStatus.innerHTML = '🟢 લાઈન તૈયાર છે (શાંત છે)';
+          lcdMainStatus.innerHTML = '🟢 Channel is Ready & Idle';
         }
       }, 5000);
     }
@@ -477,6 +479,7 @@
     isLoggedIn = false;
     if (radioScreen) radioScreen.style.display = 'none';
     if (loginScreen) loginScreen.style.display = 'flex';
+    if (loginPinInput) loginPinInput.value = '';
   }
 
   // PTT Actions
@@ -488,7 +491,7 @@
       try {
         await requestMicrophone();
       } catch (err) {
-        alert('માઇક્રોફોનની પરવાનગી જરૂરી છે!');
+        alert('Microphone permission required for Walkie-Talkie!');
         return;
       }
     }
@@ -496,14 +499,14 @@
     isTransmitting = true;
     if (btnPttGiant) btnPttGiant.classList.add('active');
     if (pttPulseRing) pttPulseRing.classList.add('pulse');
-    if (pttMainLabel) pttMainLabel.textContent = 'તમે બોલો છો';
-    if (pttSubLabel) pttSubLabel.textContent = 'બધા સાંભળી રહ્યા છે';
+    if (pttMainLabel) pttMainLabel.textContent = 'TRANSMITTING';
+    if (pttSubLabel) pttSubLabel.textContent = 'Everyone is listening';
 
     if (lcdMainStatus) {
-      lcdMainStatus.innerHTML = `🎙️ <strong>તમે ( ${myName} )</strong> બોલી રહ્યા છો...`;
+      lcdMainStatus.innerHTML = `🎙️ <strong>YOU (${myName})</strong> ARE TRANSMITTING...`;
     }
     if (lcdSubStatus) {
-      lcdSubStatus.textContent = 'વાત પૂરી થાય એટલે બટન છોડી દો';
+      lcdSubStatus.textContent = 'Release button when finished speaking';
     }
     if (lcdScreen) lcdScreen.classList.add('transmitting');
     if (audioWaveBars) audioWaveBars.classList.add('active');
@@ -526,13 +529,13 @@
     if (pttPulseRing) pttPulseRing.classList.remove('pulse');
 
     if (isLineActive) {
-      if (pttMainLabel) pttMainLabel.textContent = 'દબાવી રાખો';
-      if (pttSubLabel) pttSubLabel.textContent = 'અને બોલો';
-      if (lcdMainStatus) lcdMainStatus.innerHTML = '🟢 લાઈન તૈયાર છે (શાંત છે)';
-      if (lcdSubStatus) lcdSubStatus.textContent = 'વાત કરવા માટે નીચેનું બટન દબાવી રાખો';
+      if (pttMainLabel) pttMainLabel.textContent = 'HOLD TO TALK';
+      if (pttSubLabel) pttSubLabel.textContent = 'Release to Listen';
+      if (lcdMainStatus) lcdMainStatus.innerHTML = '🟢 Channel is Ready & Idle';
+      if (lcdSubStatus) lcdSubStatus.textContent = 'Press and hold button below to talk';
     } else {
-      if (pttMainLabel) pttMainLabel.textContent = 'લાઈન બંધ છે';
-      if (pttSubLabel) pttSubLabel.textContent = 'માધવ દ્વારા લૉક';
+      if (pttMainLabel) pttMainLabel.textContent = 'LINE LOCKED';
+      if (pttSubLabel) pttSubLabel.textContent = 'Locked by Madhav';
     }
 
     if (lcdScreen) lcdScreen.classList.remove('transmitting');
@@ -566,24 +569,51 @@
       btnEnterRadio.addEventListener('click', () => {
         initAudio();
         const pin = (loginPinInput ? loginPinInput.value : '').trim();
-        if (pin !== '6880') {
+
+        if (!pin) {
           if (loginError) {
-            loginError.textContent = 'ખોટો PIN છે! PIN "6880" નાખો.';
+            loginError.textContent = 'Please enter your Security PIN.';
             loginError.style.display = 'block';
+          }
+          if (loginPinInput) loginPinInput.focus();
+          return;
+        }
+
+        // Expected PIN check
+        const expectedPin = (myId === 'mem_7') ? '2007' : '6880';
+        if (pin !== expectedPin) {
+          if (loginError) {
+            loginError.textContent = (myId === 'mem_7')
+              ? 'Incorrect PIN for Madhav! Enter valid PIN.'
+              : 'Incorrect Security PIN! Enter valid PIN.';
+            loginError.style.display = 'block';
+          }
+          if (loginPinInput) {
+            loginPinInput.value = '';
+            loginPinInput.focus();
           }
           return;
         }
 
         localStorage.setItem('kwt_member_id', myId);
         localStorage.setItem('kwt_member_name', myName);
-        localStorage.setItem('kwt_pin', pin);
 
         if (loginError) loginError.style.display = 'none';
 
         if (!ws || ws.readyState !== WebSocket.OPEN) {
           connectWebSocket();
         } else {
-          sendClaimSlot();
+          sendClaimSlot(pin);
+        }
+      });
+    }
+
+    // Enter Key on PIN input triggers login
+    if (loginPinInput) {
+      loginPinInput.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') {
+          e.preventDefault();
+          if (btnEnterRadio) btnEnterRadio.click();
         }
       });
     }
@@ -675,14 +705,5 @@
   initLoginSelection();
   setupListeners();
   connectWebSocket();
-
-  // If already logged in previously, restore session directly
-  const savedPin = localStorage.getItem('kwt_pin');
-  if (savedPin === '6880' && localStorage.getItem('kwt_member_id')) {
-    myId = localStorage.getItem('kwt_member_id');
-    myName = localStorage.getItem('kwt_member_name') || 'Madhav';
-    isLoggedIn = true;
-    switchToRadioScreen();
-  }
 
 })();
