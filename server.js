@@ -219,8 +219,8 @@ function setupWebSocketServer(wss) {
 
             if (enteredPin !== expectedPin) {
               const errMsg = (memberId === 'mem_7')
-                ? 'Incorrect PIN for Madhav! Please enter valid PIN.'
-                : 'Incorrect Security PIN! Please enter valid PIN.';
+                ? 'Incorrect Security PIN! Please try again.'
+                : 'Incorrect Security PIN! Please try again.';
               ws.send(JSON.stringify({
                 type: 'slot_error',
                 message: errMsg
