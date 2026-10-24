@@ -100,29 +100,26 @@
     }
   }
 
-  // Render Live Roster
+    // Render Live Roster with Compact 1 to 7 Numbered Squares
   function renderRoster() {
     if (!rosterGrid) return;
     let onlineCount = 0;
     let html = '';
 
-    FAMILY_MEMBERS.forEach(mem => {
+    FAMILY_MEMBERS.forEach((mem, index) => {
       const isOnline = !!activeSlots[mem.id];
       if (isOnline) onlineCount++;
       const isSpeaking = (currentSpeakerSlot === mem.id) || (isTransmitting && mem.id === myId);
 
-      let statusLabel = '⚪ Offline';
-      if (isSpeaking) statusLabel = '📢 Speaking';
-      else if (isOnline) statusLabel = '🟢 Online';
+      const num = index + 1; // 1: Mansukhbhai, 2: Sudhaben, ..., 7: Madhav
+      const dotClass = isOnline ? 'online' : 'offline';
+      const speakClass = isSpeaking ? 'speaking' : '';
+      const tooltip = `${num}. ${mem.name} (${isOnline ? 'Online' : 'Offline'}${isSpeaking ? ' - Speaking' : ''})`;
 
       html += `
-        <div class="roster-card ${isOnline ? 'online' : 'offline'} ${isSpeaking ? 'speaking' : ''}" id="roster_${mem.id}">
-          <div class="roster-avatar">${mem.icon}</div>
-          <div class="roster-meta">
-            <span class="roster-name">${mem.name}</span>
-            <span class="roster-status-lbl">${statusLabel}</span>
-          </div>
-          <span class="status-indicator-dot"></span>
+        <div class="roster-square ${speakClass}" id="roster_${mem.id}" title="${tooltip}">
+          <span class="sq-num">${num}</span>
+          <span class="sq-dot ${dotClass}"></span>
         </div>
       `;
     });
@@ -131,6 +128,7 @@
     if (counterText) {
       counterText.textContent = `${onlineCount} / ${FAMILY_MEMBERS.length} Online`;
     }
+  }
   }
 
   // Master Line Active State Synchronizer
