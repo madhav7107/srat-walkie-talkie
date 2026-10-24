@@ -2,49 +2,49 @@
   "appName": "KWT",
   "appTitle": "KWT - Kotecha Family Walkie-Talkie",
   "familyPin": "6880",
-  "ownerPin": "6880",
+  "madhavPin": "2007",
   "members": [
     {
       "id": "mem_1",
       "name": "Mansukhbhai",
       "icon": "👨‍🦳",
-      "relation": "વડીલ"
+      "relation": "Elder"
     },
     {
       "id": "mem_2",
       "name": "Sudhaben",
       "icon": "👵",
-      "relation": "વડીલ"
+      "relation": "Elder"
     },
     {
       "id": "mem_3",
       "name": "Nimeeshbhai",
       "icon": "👨",
-      "relation": "પરિવાર"
+      "relation": "Family"
     },
     {
       "id": "mem_4",
       "name": "Umangben",
       "icon": "👩",
-      "relation": "પરિવાર"
+      "relation": "Family"
     },
     {
       "id": "mem_5",
       "name": "Kalpeshbhai",
       "icon": "👨",
-      "relation": "પરિવાર"
+      "relation": "Family"
     },
     {
       "id": "mem_6",
       "name": "Kajalben",
       "icon": "👩",
-      "relation": "પરિવાર"
+      "relation": "Family"
     },
     {
       "id": "mem_7",
       "name": "Madhav",
       "icon": "👦",
-      "relation": "પરિવાર"
+      "relation": "Super Admin"
     }
   ]
 }
