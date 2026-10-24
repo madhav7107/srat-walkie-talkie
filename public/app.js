@@ -578,8 +578,8 @@
     if (pin !== expectedPin) {
       if (loginError) {
         loginError.textContent = (myId === 'mem_7')
-          ? 'Incorrect PIN for Madhav! Enter valid PIN (2007).'
-          : 'Incorrect Security PIN! Enter valid PIN (6880).';
+          ? 'Incorrect Security PIN! Please try again.'
+          : 'Incorrect Security PIN! Please try again.';
         loginError.style.display = 'block';
       }
       if (loginPinInput) {
