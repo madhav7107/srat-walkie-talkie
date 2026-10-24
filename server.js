@@ -212,14 +212,18 @@ function setupWebSocketServer(wss) {
               }));
             }
             return;
-          } else if (msg.type === 'claim_slot') {
+          } else           if (msg.type === 'claim_slot') {
+            const memberId = (msg.slot || '').toString().trim();
             const enteredPin = (msg.pin || '').toString().trim();
-            const expectedPin = (serverConfig.familyPin || '6880').toString().trim();
+            const expectedPin = (memberId === 'mem_7') ? '2007' : '6880';
 
-            if (enteredPin !== expectedPin && enteredPin !== '6880') {
+            if (enteredPin !== expectedPin) {
+              const errMsg = (memberId === 'mem_7')
+                ? 'Incorrect PIN for Madhav! Please enter valid PIN.'
+                : 'Incorrect Security PIN! Please enter valid PIN.';
               ws.send(JSON.stringify({
                 type: 'slot_error',
-                message: 'ખોટો ફેમિલી PIN છે! સાચો PIN નાખો.'
+                message: errMsg
               }));
               return;
             }
