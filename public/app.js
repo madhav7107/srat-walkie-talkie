@@ -1,5 +1,5 @@
 // ========================================================================
-// KWT - Kotecha Family Walkie-Talkie (English Client Core)
+// KWT - Kotecha Family Walkie-Talkie (Ultra-Reliable Client Engine)
 // ========================================================================
 (() => {
   // DOM Elements - Screens
@@ -88,19 +88,16 @@
         myId = card.getAttribute('data-id');
         myName = card.getAttribute('data-name');
         if (loginError) loginError.style.display = 'none';
-        if (loginPinInput) {
-          loginPinInput.value = '';
-          loginPinInput.focus();
-        }
+        // Do NOT clear user's input if they already typed PIN
       });
     });
 
     if (loginPinInput) {
-      loginPinInput.value = ''; // Always blank on load
+      loginPinInput.value = '';
     }
   }
 
-    // Render Live Roster with Compact 1 to 7 Numbered Squares
+  // Render Live Roster with Compact 1 to 7 Numbered Squares
   function renderRoster() {
     if (!rosterGrid) return;
     let onlineCount = 0;
@@ -128,7 +125,6 @@
     if (counterText) {
       counterText.textContent = `${onlineCount} / ${FAMILY_MEMBERS.length} Online`;
     }
-  }
   }
 
   // Master Line Active State Synchronizer
@@ -178,21 +174,32 @@
     }
   }
 
-  // Audio Context Initialization
+  // Ultra-Safe Audio Context Initialization (Works on all mobile DACs)
   function initAudio() {
-    if (!audioCtx) {
-      const AudioCtxClass = window.AudioContext || window.webkitAudioContext;
-      audioCtx = new AudioCtxClass({ sampleRate: 16000 });
-      speakerGainNode = audioCtx.createGain();
-      speakerGainNode.gain.value = volumeSlider ? parseFloat(volumeSlider.value) : 1.0;
-      speakerGainNode.connect(audioCtx.destination);
+    try {
+      if (!audioCtx) {
+        const AudioCtxClass = window.AudioContext || window.webkitAudioContext;
+        if (AudioCtxClass) {
+          // Standard hardware rate constructor prevents iOS/Android crashes
+          audioCtx = new AudioCtxClass();
+          speakerGainNode = audioCtx.createGain();
+          speakerGainNode.gain.value = volumeSlider ? parseFloat(volumeSlider.value) : 1.0;
+          speakerGainNode.connect(audioCtx.destination);
+        }
+      }
+      if (audioCtx && audioCtx.state === 'suspended') {
+        audioCtx.resume().catch(() => {});
+      }
+    } catch (err) {
+      console.warn('AudioContext init notice:', err);
     }
-    if (audioCtx.state === 'suspended') {
-      audioCtx.resume().catch(() => {});
-    }
-    if (silentAudio && silentAudio.paused) {
-      silentAudio.play().catch(() => {});
-    }
+
+    try {
+      if (silentAudio && silentAudio.paused) {
+        silentAudio.play().catch(() => {});
+      }
+    } catch (e) {}
+
     acquireWakeLock();
   }
 
@@ -209,6 +216,7 @@
   function playBeep(freq, duration, type = 'sine', gain = 0.15) {
     try {
       if (!audioCtx) initAudio();
+      if (!audioCtx) return;
       const osc = audioCtx.createOscillator();
       const g = audioCtx.createGain();
       osc.type = type;
@@ -226,6 +234,7 @@
   function playChaiBell() {
     try {
       if (!audioCtx) initAudio();
+      if (!audioCtx) return;
       const now = audioCtx.currentTime;
       const osc1 = audioCtx.createOscillator();
       const g1 = audioCtx.createGain();
@@ -253,6 +262,7 @@
   function playUrgentAlert() {
     try {
       if (!audioCtx) initAudio();
+      if (!audioCtx) return;
       let t = audioCtx.currentTime;
       for (let i = 0; i < 4; i++) {
         const osc = audioCtx.createOscillator();
@@ -280,7 +290,6 @@
     micStream = await navigator.mediaDevices.getUserMedia({
       audio: {
         channelCount: 1,
-        sampleRate: 16000,
         echoCancellation: true,
         noiseSuppression: true,
         autoGainControl: true
@@ -288,6 +297,7 @@
       video: false
     });
 
+    if (!audioCtx) initAudio();
     micSource = audioCtx.createMediaStreamSource(micStream);
     const bufferSize = 1024;
     scriptProcessor = audioCtx.createScriptProcessor(bufferSize, 1, 1);
@@ -311,6 +321,7 @@
   // Audio Playback with Jitter Buffering
   function playAudioChunk(arrayBuffer) {
     if (!audioCtx) initAudio();
+    if (!audioCtx) return;
     if (audioCtx.state === 'suspended') audioCtx.resume().catch(() => {});
 
     const pcm16 = new Int16Array(arrayBuffer);
@@ -319,12 +330,12 @@
       float32[i] = pcm16[i] / (pcm16[i] < 0 ? 0x8000 : 0x7FFF);
     }
 
-    const audioBuffer = audioCtx.createBuffer(1, float32.length, 16000);
+    const audioBuffer = audioCtx.createBuffer(1, float32.length, audioCtx.sampleRate || 16000);
     audioBuffer.getChannelData(0).set(float32);
 
     const source = audioCtx.createBufferSource();
     source.buffer = audioBuffer;
-    source.connect(speakerGainNode);
+    source.connect(speakerGainNode || audioCtx.destination);
 
     const now = audioCtx.currentTime;
     if (nextPlayTime < now || nextPlayTime > now + 0.05) {
@@ -346,8 +357,9 @@
 
     ws.onopen = () => {
       if (networkLed) networkLed.className = 'counter-dot connected';
-      if (isLoggedIn) {
-        sendClaimSlot();
+      const storedPin = localStorage.getItem('kwt_pin') || '';
+      if (isLoggedIn || storedPin) {
+        sendClaimSlot(storedPin);
       }
     };
 
@@ -377,7 +389,7 @@
 
   function sendClaimSlot(customPin) {
     if (!ws || ws.readyState !== WebSocket.OPEN) return;
-    const pin = customPin || (loginPinInput ? loginPinInput.value : '') || '';
+    const pin = customPin || localStorage.getItem('kwt_pin') || '';
     ws.send(JSON.stringify({
       type: 'claim_slot',
       slot: myId,
@@ -451,7 +463,7 @@
     }
   }
 
-  // Screen Switchers
+  // Instant Screen Switchers
   function switchToRadioScreen() {
     if (loginScreen) loginScreen.style.display = 'none';
     if (radioScreen) radioScreen.style.display = 'flex';
@@ -475,6 +487,7 @@
 
   function switchToLoginScreen() {
     isLoggedIn = false;
+    localStorage.removeItem('kwt_pin');
     if (radioScreen) radioScreen.style.display = 'none';
     if (loginScreen) loginScreen.style.display = 'flex';
     if (loginPinInput) loginPinInput.value = '';
@@ -539,11 +552,62 @@
     if (lcdScreen) lcdScreen.classList.remove('transmitting');
     if (audioWaveBars) audioWaveBars.classList.remove('active');
 
-    playBeep(450, 0.04, 'sine', 0.08); // Roger click
+    playBeep(450, 0.04, 'sine', 0.08);
     renderRoster();
 
     if (ws && ws.readyState === WebSocket.OPEN) {
       ws.send(JSON.stringify({ type: 'talk_stop' }));
+    }
+  }
+
+  // Instant Verification and Screen Switch Handler
+  function attemptLogin() {
+    const pin = (loginPinInput ? loginPinInput.value : '').trim();
+
+    if (!pin) {
+      if (loginError) {
+        loginError.textContent = 'Please enter your Security PIN.';
+        loginError.style.display = 'block';
+      }
+      if (loginPinInput) loginPinInput.focus();
+      return;
+    }
+
+    // Expected PIN check: Madhav = 2007, All others = 6880
+    const expectedPin = (myId === 'mem_7') ? '2007' : '6880';
+    if (pin !== expectedPin) {
+      if (loginError) {
+        loginError.textContent = (myId === 'mem_7')
+          ? 'Incorrect PIN for Madhav! Enter valid PIN (2007).'
+          : 'Incorrect Security PIN! Enter valid PIN (6880).';
+        loginError.style.display = 'block';
+      }
+      if (loginPinInput) {
+        loginPinInput.value = '';
+        loginPinInput.focus();
+      }
+      return;
+    }
+
+    // PIN is 100% correct! Save credentials
+    localStorage.setItem('kwt_member_id', myId);
+    localStorage.setItem('kwt_member_name', myName);
+    localStorage.setItem('kwt_pin', pin);
+
+    if (loginError) loginError.style.display = 'none';
+
+    // Switch screen IMMEDIATELY for instant responsiveness
+    isLoggedIn = true;
+    switchToRadioScreen();
+
+    // Init Audio safely in user gesture handler
+    initAudio();
+
+    // Sync with WebSocket server
+    if (!ws || ws.readyState !== WebSocket.OPEN) {
+      connectWebSocket();
+    } else {
+      sendClaimSlot(pin);
     }
   }
 
@@ -562,48 +626,9 @@
       });
     }
 
-    // Login Submit
+    // Login Submit (Both click and touch supported)
     if (btnEnterRadio) {
-      btnEnterRadio.addEventListener('click', () => {
-        initAudio();
-        const pin = (loginPinInput ? loginPinInput.value : '').trim();
-
-        if (!pin) {
-          if (loginError) {
-            loginError.textContent = 'Please enter your Security PIN.';
-            loginError.style.display = 'block';
-          }
-          if (loginPinInput) loginPinInput.focus();
-          return;
-        }
-
-        // Expected PIN check
-        const expectedPin = (myId === 'mem_7') ? '2007' : '6880';
-        if (pin !== expectedPin) {
-          if (loginError) {
-            loginError.textContent = (myId === 'mem_7')
-              ? 'Incorrect PIN for Madhav! Enter valid PIN.'
-              : 'Incorrect Security PIN! Enter valid PIN.';
-            loginError.style.display = 'block';
-          }
-          if (loginPinInput) {
-            loginPinInput.value = '';
-            loginPinInput.focus();
-          }
-          return;
-        }
-
-        localStorage.setItem('kwt_member_id', myId);
-        localStorage.setItem('kwt_member_name', myName);
-
-        if (loginError) loginError.style.display = 'none';
-
-        if (!ws || ws.readyState !== WebSocket.OPEN) {
-          connectWebSocket();
-        } else {
-          sendClaimSlot(pin);
-        }
-      });
+      btnEnterRadio.addEventListener('click', attemptLogin);
     }
 
     // Enter Key on PIN input triggers login
@@ -611,7 +636,7 @@
       loginPinInput.addEventListener('keydown', (e) => {
         if (e.key === 'Enter') {
           e.preventDefault();
-          if (btnEnterRadio) btnEnterRadio.click();
+          attemptLogin();
         }
       });
     }
