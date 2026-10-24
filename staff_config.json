@@ -1,9 +1,50 @@
 {
-  "stations": [
-    { "id": "station_1", "name": "Nimeeshbhai", "pin": "3005", "role": "owner" },
-    { "id": "station_2", "name": "Kalpeshbhai", "pin": "1111", "role": "owner" },
-    { "id": "station_3", "name": "Madhav", "pin": "7107", "role": "owner" },
-    { "id": "station_4", "name": "Sagarbhai", "pin": "0954", "role": "staff" },
-    { "id": "station_5", "name": "Devraj", "pin": "1204", "role": "staff" }
+  "appName": "KWT",
+  "appTitle": "KWT - Kotecha Family Walkie-Talkie",
+  "familyPin": "6880",
+  "ownerPin": "6880",
+  "members": [
+    {
+      "id": "mem_1",
+      "name": "Mansukhbhai",
+      "icon": "👨‍🦳",
+      "relation": "વડીલ"
+    },
+    {
+      "id": "mem_2",
+      "name": "Sudhaben",
+      "icon": "👵",
+      "relation": "વડીલ"
+    },
+    {
+      "id": "mem_3",
+      "name": "Nimeeshbhai",
+      "icon": "👨",
+      "relation": "પરિવાર"
+    },
+    {
+      "id": "mem_4",
+      "name": "Umangben",
+      "icon": "👩",
+      "relation": "પરિવાર"
+    },
+    {
+      "id": "mem_5",
+      "name": "Kalpeshbhai",
+      "icon": "👨",
+      "relation": "પરિવાર"
+    },
+    {
+      "id": "mem_6",
+      "name": "Kajalben",
+      "icon": "👩",
+      "relation": "પરિવાર"
+    },
+    {
+      "id": "mem_7",
+      "name": "Madhav",
+      "icon": "👦",
+      "relation": "પરિવાર"
+    }
   ]
 }
