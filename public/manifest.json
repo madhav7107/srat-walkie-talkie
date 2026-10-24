@@ -1,12 +1,12 @@
 {
-  "name": "SRAT - WALKIE TALKIE",
-  "short_name": "SRAT Walkie",
-  "description": "SRAT Tactical Real-time Voice Intercom",
+  "name": "KWT - Family Walkie Talkie",
+  "short_name": "KWT",
+  "description": "Kotecha Family Real-time Voice Intercom",
   "start_url": "./index.html",
   "display": "standalone",
   "orientation": "portrait",
-  "background_color": "#11161d",
-  "theme_color": "#00e676",
+  "background_color": "#0b1329",
+  "theme_color": "#10b981",
   "icons": [
     {
       "src": "icon-192.png",
