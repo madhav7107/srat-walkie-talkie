@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="gu">
+<html lang="en">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
@@ -27,8 +27,8 @@
         <img src="icon-192.png" alt="KWT Logo" class="brand-logo-img">
         <div class="brand-headings">
           <h1 class="brand-title">KWT</h1>
-          <p class="brand-sub">કોટેચા પરિવાર વોકી-ટોકી</p>
-          <span class="family-tag">Kotecha Family Connect</span>
+          <p class="brand-sub">Kotecha Family Walkie-Talkie</p>
+          <span class="family-tag">Private Family Network</span>
         </div>
       </div>
 
@@ -36,52 +36,51 @@
 
       <!-- Step 1: Member Selection -->
       <div class="form-section">
-        <label class="form-label">૧. તમારું નામ પસંદ કરો:</label>
+        <label class="form-label">1. Select Your Name:</label>
         <div class="member-grid" id="memberGrid">
           <button type="button" class="member-card active" data-id="mem_1" data-name="Mansukhbhai">
             <span class="member-icon">👨‍🦳</span>
             <span class="member-name">Mansukhbhai</span>
-            <span class="member-sub">વડીલ</span>
+            <span class="member-sub">Elder</span>
           </button>
           <button type="button" class="member-card" data-id="mem_2" data-name="Sudhaben">
             <span class="member-icon">👵</span>
             <span class="member-name">Sudhaben</span>
-            <span class="member-sub">વડીલ</span>
+            <span class="member-sub">Elder</span>
           </button>
           <button type="button" class="member-card" data-id="mem_3" data-name="Nimeeshbhai">
             <span class="member-icon">👨</span>
             <span class="member-name">Nimeeshbhai</span>
-            <span class="member-sub">પરિવાર</span>
+            <span class="member-sub">Family</span>
           </button>
           <button type="button" class="member-card" data-id="mem_4" data-name="Umangben">
             <span class="member-icon">👩</span>
             <span class="member-name">Umangben</span>
-            <span class="member-sub">પરિવાર</span>
+            <span class="member-sub">Family</span>
           </button>
           <button type="button" class="member-card" data-id="mem_5" data-name="Kalpeshbhai">
             <span class="member-icon">👨</span>
             <span class="member-name">Kalpeshbhai</span>
-            <span class="member-sub">પરિવાર</span>
+            <span class="member-sub">Family</span>
           </button>
           <button type="button" class="member-card" data-id="mem_6" data-name="Kajalben">
             <span class="member-icon">👩</span>
             <span class="member-name">Kajalben</span>
-            <span class="member-sub">પરિવાર</span>
+            <span class="member-sub">Family</span>
           </button>
           <button type="button" class="member-card" data-id="mem_7" data-name="Madhav">
             <span class="member-icon">👦</span>
             <span class="member-name">Madhav</span>
-            <span class="member-sub">પરિવાર</span>
+            <span class="member-sub">Super Admin</span>
           </button>
         </div>
       </div>
 
-      <!-- Step 2: Family PIN -->
+      <!-- Step 2: Security PIN (Clean Input, No pre-filled PIN, No default text) -->
       <div class="form-section">
-        <label class="form-label" for="loginPinInput">૨. ફેમિલી PIN નાખો:</label>
+        <label class="form-label" for="loginPinInput">2. Enter Security PIN:</label>
         <div class="pin-input-wrap">
-          <input type="password" id="loginPinInput" class="input-field" value="6880" placeholder="PIN નાખો (6880)" inputmode="numeric" maxlength="6">
-          <span class="pin-hint">Default: 6880</span>
+          <input type="password" id="loginPinInput" class="input-field" value="" placeholder="Enter PIN" inputmode="numeric" maxlength="6" autocomplete="off">
         </div>
       </div>
 
@@ -90,12 +89,12 @@
 
       <!-- Submit Button -->
       <button type="button" class="btn-login-submit" id="btnEnterRadio">
-        <span>પરિવાર સાથે જોડાઓ</span>
+        <span>Connect to Family Radio</span>
         <span class="arrow-icon">➔</span>
       </button>
 
       <div class="login-footer">
-        🔒 સુરક્ષિત ખાનગી ફેમિલી ચેનલ
+        🔒 Private Encrypted Family Channel
       </div>
     </div>
   </div>
@@ -115,34 +114,34 @@
         </div>
         <div class="online-counter" id="onlineCounterBadge">
           <span class="counter-dot" id="networkLed"></span>
-          <span id="counterText">1 / 7 હાજર</span>
+          <span id="counterText">1 / 7 Online</span>
         </div>
-        <button type="button" class="btn-switch-user" id="btnSwitchUser" title="નામ બદલો">
-          બદલો 🔄
+        <button type="button" class="btn-switch-user" id="btnSwitchUser" title="Switch Member">
+          Switch 🔄
         </button>
       </div>
 
       <!-- Active User Profile Bar -->
       <div class="active-user-bar">
-        <span class="user-label">તમારું નામ:</span>
+        <span class="user-label">Logged in as:</span>
         <span class="user-name-tag" id="currentUserNameTag">👦 Madhav</span>
       </div>
 
       <!-- Master Super Admin Control (Only for Madhav) -->
       <div class="master-control-bar" id="masterControlBar" style="display: none;">
         <div class="master-title-row">
-          <span class="master-badge">👑 સુપર એડમિન કંટ્રોલ</span>
-          <span class="master-user-tag">માધવ સ્પેશિયલ એક્સેસ</span>
+          <span class="master-badge">👑 Super Admin Control</span>
+          <span class="master-user-tag">Madhav Exclusive</span>
         </div>
         <button type="button" class="btn-master-toggle line-active" id="btnMasterToggle">
           <span class="toggle-icon" id="masterToggleIcon">🟢</span>
-          <span class="toggle-text" id="masterToggleText">લાઈન ચાલુ છે (બંધ કરવા દબાવો)</span>
+          <span class="toggle-text" id="masterToggleText">LINE IS ACTIVE (TAP TO LOCK)</span>
         </button>
       </div>
 
       <!-- Family Members Status Roster -->
       <div class="family-roster-box">
-        <div class="roster-header">પરિવારના સભ્યો:</div>
+        <div class="roster-header">FAMILY MEMBERS:</div>
         <div class="roster-grid" id="rosterGrid">
           <!-- Dynamically filled with members -->
         </div>
@@ -156,11 +155,11 @@
         </div>
 
         <div class="lcd-main-status" id="lcdMainStatus">
-          🟢 લાઇન તૈયાર છે (શાંત છે)
+          🟢 Channel is Ready & Idle
         </div>
 
         <div class="lcd-sub-status" id="lcdSubStatus">
-          વાત કરવા માટે નીચેનું બટન દબાવી રાખો
+          Press and hold button below to talk
         </div>
 
         <!-- Audio Waveform Visualizer -->
@@ -175,11 +174,11 @@
       <div class="family-bells-row">
         <button type="button" class="btn-bell btn-chai" id="btnChaiBell">
           <span class="bell-icon">☕</span>
-          <span class="bell-text">ચા / જમવાની બેલ</span>
+          <span class="bell-text">Tea / Meal Bell</span>
         </button>
         <button type="button" class="btn-bell btn-urgent" id="btnUrgentAlert">
           <span class="bell-icon">🚨</span>
-          <span class="bell-text">ઇમરજન્સી એલર્ટ</span>
+          <span class="bell-text">Urgent Alert</span>
         </button>
       </div>
 
@@ -188,8 +187,8 @@
         <button type="button" class="btn-ptt-giant" id="btnPttGiant">
           <div class="ptt-inner-circle">
             <span class="ptt-mic-icon">🎙️</span>
-            <span class="ptt-main-label" id="pttMainLabel">દબાવી રાખો</span>
-            <span class="ptt-sub-label" id="pttSubLabel">અને બોલો</span>
+            <span class="ptt-main-label" id="pttMainLabel">HOLD TO TALK</span>
+            <span class="ptt-sub-label" id="pttSubLabel">Release to Listen</span>
           </div>
           <div class="ptt-pulse-ring" id="pttPulseRing"></div>
         </button>
@@ -197,10 +196,10 @@
 
       <!-- Bottom Audio Bar -->
       <div class="bottom-tools-bar">
-        <button type="button" class="btn-tool" id="btnMuteToggle">
+        <button type="button" class="btn-tool" id="btnMuteToggle" title="Mute Speaker">
           <span id="muteIcon">🔊</span>
         </button>
-        <input type="range" id="volumeSlider" class="volume-slider" min="0" max="1" step="0.05" value="1">
+        <input type="range" id="volumeSlider" class="volume-slider" min="0" max="1" step="0.05" value="1" title="Volume">
       </div>
 
     </div>
