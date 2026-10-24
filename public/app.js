@@ -175,6 +175,31 @@
   }
 
   // Ultra-Safe Audio Context Initialization (Works on all mobile DACs)
+  
+  // Android & iOS Media Session Manager for Uninterrupted Background Voice
+  function updateMediaSession() {
+    if ('mediaSession' in navigator) {
+      try {
+        navigator.mediaSession.metadata = new MediaMetadata({
+          title: "KWT - Family Walkie Talkie",
+          artist: "Voice Line Active (Always Connected)",
+          album: "Kotecha Family Network",
+          artwork: [
+            { src: "icon-192.png", sizes: "192x192", type: "image/png" },
+            { src: "icon-512.png", sizes: "512x512", type: "image/png" }
+          ]
+        });
+        navigator.mediaSession.playbackState = 'playing';
+
+        navigator.mediaSession.setActionHandler('play', () => {
+          if (silentAudio && silentAudio.paused) silentAudio.play().catch(() => {});
+          if (audioCtx && audioCtx.state === 'suspended') audioCtx.resume().catch(() => {});
+        });
+        navigator.mediaSession.setActionHandler('pause', () => {});
+      } catch (e) {}
+    }
+  }
+
   function initAudio() {
     try {
       if (!audioCtx) {
@@ -201,6 +226,7 @@
     } catch (e) {}
 
     acquireWakeLock();
+    updateMediaSession();
   }
 
   // Screen Wake Lock
@@ -725,6 +751,16 @@
   }
 
   // Initialization Entry
+  
+  // Background / Foreground state transitions
+  document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState === 'visible') {
+      if (audioCtx && audioCtx.state === 'suspended') audioCtx.resume().catch(() => {});
+      if (silentAudio && silentAudio.paused) silentAudio.play().catch(() => {});
+      if (!ws || ws.readyState !== WebSocket.OPEN) connectWebSocket();
+    }
+  });
+
   initLoginSelection();
   setupListeners();
   connectWebSocket();
