@@ -1,374 +1,211 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="gu">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-  <meta name="theme-color" content="#10141b">
+  <meta name="theme-color" content="#0b1329">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-  <title>SRAT - WALKIE TALKIE | Tactical Intercom</title>
+  <title>KWT - Kotecha Family Walkie-Talkie</title>
   
   <link rel="manifest" href="manifest.json">
   <link rel="icon" type="image/png" href="icon-192.png">
   <link rel="apple-touch-icon" href="icon-192.png">
-  <link rel="stylesheet" href="style.css?v=14">
+  <link rel="stylesheet" href="style.css">
 </head>
 <body>
 
+  <!-- BACKGROUND KEEP-ALIVE AUDIO -->
+  <audio id="silentAudio" loop playsinline src="silent.wav" preload="auto"></audio>
+
   <!-- ============================================================ -->
-  <!-- SCREEN 1: PROFESSIONAL LOGIN / ACCESS GATE                   -->
+  <!-- SCREEN 1: FAMILY LOGIN / MEMBER SELECTION                    -->
   <!-- ============================================================ -->
   <div class="login-wrapper" id="loginScreen">
     <div class="login-card">
       <div class="login-brand">
-        <div class="brand-radio-icon">📻</div>
+        <img src="icon-192.png" alt="KWT Logo" class="brand-logo-img">
         <div class="brand-headings">
-          <h1 class="brand-title">SRAT - WALKIE TALKIE</h1>
-          <p class="brand-sub">TACTICAL REAL-TIME RADIO SYSTEM</p>
+          <h1 class="brand-title">KWT</h1>
+          <p class="brand-sub">કોટેચા પરિવાર વોકી-ટોકી</p>
+          <span class="family-tag">Kotecha Family Connect</span>
         </div>
       </div>
 
       <div class="login-divider"></div>
 
-      <!-- Station Selection (All 5 equal stations) -->
+      <!-- Step 1: Member Selection -->
       <div class="form-section">
-        <label class="form-label" id="slotLabel">1. SELECT YOUR NAME</label>
-        
-        <div class="slot-pills-row" id="stationsRow">
-          <button type="button" class="slot-pill active" data-slot="station_1">
-            <span class="slot-num">01</span>
-            <span class="slot-name">Nimeeshbhai</span>
+        <label class="form-label">૧. તમારું નામ પસંદ કરો:</label>
+        <div class="member-grid" id="memberGrid">
+          <button type="button" class="member-card active" data-id="mem_1" data-name="Mansukhbhai">
+            <span class="member-icon">👨‍🦳</span>
+            <span class="member-name">Mansukhbhai</span>
+            <span class="member-sub">વડીલ</span>
           </button>
-          <button type="button" class="slot-pill" data-slot="station_2">
-            <span class="slot-num">02</span>
-            <span class="slot-name">Kalpeshbhai</span>
+          <button type="button" class="member-card" data-id="mem_2" data-name="Sudhaben">
+            <span class="member-icon">👵</span>
+            <span class="member-name">Sudhaben</span>
+            <span class="member-sub">વડીલ</span>
           </button>
-          <button type="button" class="slot-pill" data-slot="station_3">
-            <span class="slot-num">03</span>
-            <span class="slot-name">Madhav</span>
+          <button type="button" class="member-card" data-id="mem_3" data-name="Nimeeshbhai">
+            <span class="member-icon">👨</span>
+            <span class="member-name">Nimeeshbhai</span>
+            <span class="member-sub">પરિવાર</span>
           </button>
-          <button type="button" class="slot-pill" data-slot="station_4">
-            <span class="slot-num">04</span>
-            <span class="slot-name">Sagarbhai</span>
+          <button type="button" class="member-card" data-id="mem_4" data-name="Umangben">
+            <span class="member-icon">👩</span>
+            <span class="member-name">Umangben</span>
+            <span class="member-sub">પરિવાર</span>
           </button>
-          <button type="button" class="slot-pill" data-slot="station_5">
-            <span class="slot-num">05</span>
-            <span class="slot-name">Devraj</span>
+          <button type="button" class="member-card" data-id="mem_5" data-name="Kalpeshbhai">
+            <span class="member-icon">👨</span>
+            <span class="member-name">Kalpeshbhai</span>
+            <span class="member-sub">પરિવાર</span>
+          </button>
+          <button type="button" class="member-card" data-id="mem_6" data-name="Kajalben">
+            <span class="member-icon">👩</span>
+            <span class="member-name">Kajalben</span>
+            <span class="member-sub">પરિવાર</span>
+          </button>
+          <button type="button" class="member-card" data-id="mem_7" data-name="Madhav">
+            <span class="member-icon">👦</span>
+            <span class="member-name">Madhav</span>
+            <span class="member-sub">પરિવાર</span>
           </button>
         </div>
       </div>
 
-      <!-- Security PIN -->
-      <div class="form-section" id="ownerPinSection">
-        <label class="form-label" id="pinLabel">2. ENTER SECURITY PIN</label>
-        <input type="password" id="loginPinInput" class="input-field" placeholder="Enter Secret PIN" maxlength="8" autocomplete="off" inputmode="numeric">
+      <!-- Step 2: Family PIN -->
+      <div class="form-section">
+        <label class="form-label" for="loginPinInput">૨. ફેમિલી PIN નાખો:</label>
+        <div class="pin-input-wrap">
+          <input type="password" id="loginPinInput" class="input-field" value="6880" placeholder="PIN નાખો (6880)" inputmode="numeric" maxlength="6">
+          <span class="pin-hint">Default: 6880</span>
+        </div>
       </div>
 
+      <!-- Error Message -->
+      <div class="login-error-msg" id="loginError" style="display: none;"></div>
+
+      <!-- Submit Button -->
       <button type="button" class="btn-login-submit" id="btnEnterRadio">
-        ENTER RADIO CHANNEL ➔
+        <span>પરિવાર સાથે જોડાઓ</span>
+        <span class="arrow-icon">➔</span>
       </button>
 
-      <div class="login-footer-info">
-        🔒 Authorized Personnel Only: Godown Walkie-Talkie Radio
+      <div class="login-footer">
+        🔒 સુરક્ષિત ખાનગી ફેમિલી ચેનલ
       </div>
     </div>
   </div>
 
 
   <!-- ============================================================ -->
-  <!-- SCREEN 2: PROFESSIONAL HARDWARE WALKIE-TALKIE CHASSIS        -->
+  <!-- SCREEN 2: ACTIVE FAMILY WALKIE-TALKIE RADIO SCREEN           -->
   <!-- ============================================================ -->
   <div class="radio-wrapper" id="radioScreen" style="display: none;">
-    
-    <!-- Top Radio Hardware Bevel (Antenna & Volume Cap) -->
-    <div class="hardware-top-knobs">
-      <div class="antenna-mount">
-        <div class="antenna-rod"></div>
-        <div class="antenna-tip" id="antennaLed"></div>
-      </div>
-      <div class="top-brand-strip">
-        <span class="model-badge">SRAT - WALKIE TALKIE</span>
-      </div>
-      <div class="top-action-buttons">
-        <div class="online-counter" id="onlineCounterBadge">
-          <span class="counter-dot" id="networkLed"></span>
-          <span id="counterText">1 / 4 ONLINE</span>
-        </div>
-      </div>
-    </div>
-
-    <!-- Main Chassis Container -->
-    <div class="chassis-body">
+    <div class="radio-chassis">
       
       <!-- Top Status Header -->
-      <div class="radio-header">
-        <div class="badge-station" id="stationBadge">
-          <span class="station-icon" id="badgeIcon">👑</span>
-          <span class="station-text" id="badgeText">OWNER 1 (Boss)</span>
+      <div class="radio-top-bar">
+        <div class="radio-brand-badge">
+          <img src="icon-192.png" alt="KWT Logo" class="radio-header-logo">
+          <span class="radio-brand-text">KWT</span>
         </div>
-        <div class="header-action-buttons">
-          <button type="button" class="btn-battery-guide" id="btnOpenBatteryModal" title="24-Hour Non-Stop Setup Guide" style="background: #102619; border: 1px solid #00e676; color: #00e676; padding: 5px 9px; border-radius: 6px; font-weight: 700; font-size: 0.72rem; cursor: pointer;">
-            🔋 24H
-          </button>
-          <button type="button" class="btn-owner-settings" id="btnOwnerSettings" style="display: none;" title="Owner Settings (Manage Staff & PIN)">
-            ⚙️ SETTINGS
-          </button>
-          <button type="button" class="switch-user-btn" id="btnLogout" title="Switch Account / Logout">
-            🚪 LOGOUT
-          </button>
+        <div class="online-counter" id="onlineCounterBadge">
+          <span class="counter-dot" id="networkLed"></span>
+          <span id="counterText">1 / 7 હાજર</span>
+        </div>
+        <button type="button" class="btn-switch-user" id="btnSwitchUser" title="નામ બદલો">
+          બદલો 🔄
+        </button>
+      </div>
+
+      <!-- Active User Profile Bar -->
+      <div class="active-user-bar">
+        <span class="user-label">તમારું નામ:</span>
+        <span class="user-name-tag" id="currentUserNameTag">👦 Madhav</span>
+      </div>
+
+      <!-- Master Super Admin Control (Only for Madhav) -->
+      <div class="master-control-bar" id="masterControlBar" style="display: none;">
+        <div class="master-title-row">
+          <span class="master-badge">👑 સુપર એડમિન કંટ્રોલ</span>
+          <span class="master-user-tag">માધવ સ્પેશિયલ એક્સેસ</span>
+        </div>
+        <button type="button" class="btn-master-toggle line-active" id="btnMasterToggle">
+          <span class="toggle-icon" id="masterToggleIcon">🟢</span>
+          <span class="toggle-text" id="masterToggleText">લાઈન ચાલુ છે (બંધ કરવા દબાવો)</span>
+        </button>
+      </div>
+
+      <!-- Family Members Status Roster -->
+      <div class="family-roster-box">
+        <div class="roster-header">પરિવારના સભ્યો:</div>
+        <div class="roster-grid" id="rosterGrid">
+          <!-- Dynamically filled with members -->
         </div>
       </div>
 
-      <!-- Online Active Slots Indicator (Dynamic LEDs) -->
-      <div class="roster-bar">
-        <div class="roster-top-row">
-          <span class="roster-label">STATIONS:</span>
-        </div>
-        <div class="roster-dots">
-          <!-- Dynamically populated -->
-        </div>
-      </div>
-
-      <!-- Master Shift Control Bar -->
-      <div class="master-shift-bar" id="masterShiftBar">
-        <div class="shift-details">
-          <div class="shift-state-indicator active" id="shiftStateLed"></div>
-          <div class="shift-state-text">
-            <div class="shift-state-title" id="shiftTitle">SHIFT LIVE // BROADCASTING</div>
-            <div class="shift-state-sub" id="shiftSub">Broadcast Open • All Stations Ready</div>
-          </div>
-        </div>
-        
-        <div class="shift-action-slot">
-          <button type="button" class="btn-master-shift stop" id="btnMasterShift">
-            STOP SHIFT
-          </button>
-          <div class="staff-shift-status active" id="staffShiftStatus" style="display: none;">
-            ONLINE
-          </div>
-        </div>
-      </div>
-
-      <!-- Owner Frequency / Channel Switcher (Only visible to Owners) -->
-      <div class="channel-selector-bar" id="ownerChannelBar" style="display: none;">
-        <span class="ch-label">CHANNEL:</span>
-        <div class="ch-toggle-group">
-          <button type="button" class="btn-ch active" id="btnChAll" data-channel="all" title="Broadcast to all Owners and Godown Staff">
-            <span class="ch-icon">📢</span> CH-1: ALL STATIONS
-          </button>
-          <button type="button" class="btn-ch" id="btnChOwners" data-channel="owners" title="Private voice channel strictly between Owners">
-            <span class="ch-icon">🔒</span> CH-2: OWNERS PRIVATE
-          </button>
-        </div>
-      </div>
-
-      <!-- Backlit Tactical LCD Screen -->
-      <div class="tactical-lcd" id="tacticalLcd">
+      <!-- Center LCD Screen -->
+      <div class="lcd-screen" id="lcdScreen">
         <div class="lcd-header">
-          <span class="lcd-channel" id="lcdChannelLabel">CH-01 [WAREHOUSE + OFFICE]</span>
-          <span class="lcd-freq" id="lcdFreq">16.0 kHz OPUS</span>
+          <span class="lcd-freq">CHANNEL: FAMILY MAIN</span>
+          <span class="lcd-vol" id="lcdVolIndicator">VOL: 100%</span>
         </div>
 
-        <!-- Central Active Speaker Banner -->
-        <div class="lcd-speaker-box">
-          <div class="speaker-state-ring" id="speakerRing">
-            <div class="speaker-pulse"></div>
-          </div>
-          <div class="speaker-text-wrap">
-            <div class="speaker-title" id="lcdSpeakerName">NOBODY SPEAKING</div>
-            <div class="speaker-sub" id="lcdSpeakerRole">STANDBY (Channel Open)</div>
-          </div>
+        <div class="lcd-main-status" id="lcdMainStatus">
+          🟢 લાઇન તૈયાર છે (શાંત છે)
         </div>
 
-        <!-- Real-time VU Sound Visualizer -->
-        <div class="lcd-vu-meter" id="lcdVuMeter">
-          <div class="vu-cell"></div>
-          <div class="vu-cell"></div>
-          <div class="vu-cell"></div>
-          <div class="vu-cell"></div>
-          <div class="vu-cell"></div>
-          <div class="vu-cell"></div>
-          <div class="vu-cell"></div>
-          <div class="vu-cell"></div>
-          <div class="vu-cell"></div>
-          <div class="vu-cell"></div>
-          <div class="vu-cell"></div>
-          <div class="vu-cell"></div>
-          <div class="vu-cell"></div>
-          <div class="vu-cell"></div>
+        <div class="lcd-sub-status" id="lcdSubStatus">
+          વાત કરવા માટે નીચેનું બટન દબાવી રાખો
+        </div>
+
+        <!-- Audio Waveform Visualizer -->
+        <div class="audio-wave-bars" id="audioWaveBars">
+          <span class="bar"></span><span class="bar"></span><span class="bar"></span>
+          <span class="bar"></span><span class="bar"></span><span class="bar"></span>
+          <span class="bar"></span><span class="bar"></span><span class="bar"></span>
         </div>
       </div>
 
-      <!-- Heavy-Duty Push-To-Talk Section -->
-      <div class="ptt-assembly">
-        <button type="button" class="hardware-ptt-btn" id="pttButton">
-          <div class="ptt-knurled-ring">
-            <div class="ptt-center-face">
-              <span class="ptt-icon">🎙️</span>
-              <span class="ptt-primary-text" id="pttStatusText">HOLD TO TALK</span>
-              <span class="ptt-secondary-text">PUSH TO TRANSMIT</span>
-            </div>
+      <!-- Quick Family Bell Controls -->
+      <div class="family-bells-row">
+        <button type="button" class="btn-bell btn-chai" id="btnChaiBell">
+          <span class="bell-icon">☕</span>
+          <span class="bell-text">ચા / જમવાની બેલ</span>
+        </button>
+        <button type="button" class="btn-bell btn-urgent" id="btnUrgentAlert">
+          <span class="bell-icon">🚨</span>
+          <span class="bell-text">ઇમરજન્સી એલર્ટ</span>
+        </button>
+      </div>
+
+      <!-- Master PTT Button Area -->
+      <div class="ptt-area">
+        <button type="button" class="btn-ptt-giant" id="btnPttGiant">
+          <div class="ptt-inner-circle">
+            <span class="ptt-mic-icon">🎙️</span>
+            <span class="ptt-main-label" id="pttMainLabel">દબાવી રાખો</span>
+            <span class="ptt-sub-label" id="pttSubLabel">અને બોલો</span>
           </div>
+          <div class="ptt-pulse-ring" id="pttPulseRing"></div>
         </button>
       </div>
 
-      <!-- Tactical Utility Buttons -->
-      <div class="radio-bottom-tools">
-        <!-- Lock Mic / Hands Free -->
-        <button type="button" class="tool-btn" id="btnLockMic" title="Hands-free mic lock">
-          <span class="tool-icon" id="lockMicIcon">🎙️</span>
-          <span class="tool-label" id="lockMicLabel">HANDS-FREE (OFF)</span>
+      <!-- Bottom Audio Bar -->
+      <div class="bottom-tools-bar">
+        <button type="button" class="btn-tool" id="btnMuteToggle">
+          <span id="muteIcon">🔊</span>
         </button>
-
-        <!-- Speaker Mute Toggle -->
-        <button type="button" class="tool-btn" id="btnMuteSpeaker" title="Mute speaker">
-          <span class="tool-icon" id="muteIcon">🔊</span>
-          <span class="tool-label" id="muteLabel">SPEAKER ON</span>
-        </button>
+        <input type="range" id="volumeSlider" class="volume-slider" min="0" max="1" step="0.05" value="1">
       </div>
-
-      <!-- Volume Fader -->
-      <div class="volume-strip">
-        <span class="vol-label">VOL</span>
-        <input type="range" id="volumeSlider" min="0" max="100" value="100" class="hw-slider">
-        <span class="vol-val" id="volValText">100%</span>
-      </div>
-
-      <!-- Mobile Background Guide -->
-      <div class="hw-footer-note">
-        💡 <b>Background Audio:</b> Screen locked or app in pocket? Radio stays live. Pull down the phone notification shade to toggle Mute/Unmute anytime.
-      </div>
-
-      <button type="button" class="btn-install-app" id="btnInstallPwa" style="display: none;">
-        📲 Install SRAT - WALKIE TALKIE App
-      </button>
 
     </div>
   </div>
 
-  <!-- Background Keep-Alive Audio Element for Mobile MediaSession API -->
-  <audio id="bgKeepAliveAudio" loop preload="auto" playsinline style="display: none;"></audio>
-
-  <!-- Tactical Owner Settings Modal (Owner Only) -->
-  <div class="settings-modal-overlay" id="settingsModal" style="display: none;">
-    <div class="settings-modal-card">
-      <div class="settings-modal-header">
-        <div class="settings-modal-title">
-          <span class="settings-title-icon">⚙️</span>
-          <span>OWNER SYSTEM SETTINGS</span>
-        </div>
-        <button type="button" class="settings-close-btn" id="btnCloseSettings">✕</button>
-      </div>
-
-      <!-- Section 1: Staff Stations Management -->
-      <div class="settings-section">
-        <div class="settings-section-header">
-          <span class="sec-icon">📦</span>
-          <span class="sec-title">GODOWN STAFF STATIONS</span>
-        </div>
-        <p class="sec-desc">Add or remove warehouse staff stations in real time.</p>
-        
-        <div class="staff-manager-list" id="settingsStaffList">
-          <!-- Dynamically populated staff slots with status & delete button -->
-        </div>
-
-        <div class="add-staff-form" style="display: flex; flex-direction: column; gap: 8px;">
-          <input type="text" id="newStaffNameInput" class="input-field" placeholder="Person / Staff Name (e.g. Ramesh)" maxlength="20">
-          <input type="password" id="newStaffPinInput" class="input-field" placeholder="Security PIN (4 digits)" maxlength="8" autocomplete="off">
-          <button type="button" class="btn-add-staff" id="btnAddStaff">
-            ➕ ADD PERSON
-          </button>
-        </div>
-      </div>
-
-      <!-- Section 2: Owner Security PIN -->
-      <div class="settings-section">
-        <div class="settings-section-header">
-          <span class="sec-icon">🔒</span>
-          <span class="sec-title">CHANGE OWNER SECURITY PIN</span>
-        </div>
-        <p class="sec-desc">Update secret PIN for Owner access (Default: 1234).</p>
-        
-        <div class="change-pin-form">
-          <input type="password" id="newOwnerPinInput" class="input-field" placeholder="Enter New 4-8 Digit PIN" maxlength="8" autocomplete="off">
-          <button type="button" class="btn-change-pin" id="btnSaveNewPin">
-            🔑 UPDATE PIN
-          </button>
-        </div>
-      </div>
-
-      <div class="settings-footer">
-        <button type="button" class="btn-settings-done" id="btnDoneSettings">✔ DONE</button>
-      </div>
-    </div>
-  <!-- Microphone Permission Request / Fix Modal -->
-  <div class="settings-modal-overlay" id="micModal" style="display: none;">
-    <div class="settings-modal-card" style="max-width: 400px; text-align: center;">
-      <div class="settings-modal-header" style="justify-content: center; border-bottom: 1px solid rgba(255,82,82,0.3);">
-        <div class="settings-modal-title" style="color: #ff5252;">
-          <span class="settings-title-icon">🎙️</span>
-          <span>MICROPHONE ACCESS REQUIRED</span>
-        </div>
-      </div>
-      <div style="padding: 16px 12px; font-size: 0.9rem; line-height: 1.5; color: #cfd8dc;">
-        <p style="font-weight: 700; color: #fff; margin-bottom: 12px; font-size: 1.05rem;">
-          માઇક્રોફોન પરમિશન Allow કરવી જરૂરી છે!
-        </p>
-        <div style="margin-bottom: 14px; font-size: 0.85rem; text-align: left; background: rgba(0,0,0,0.35); padding: 12px; border-radius: 8px; border-left: 4px solid #ff5252;">
-          <div style="margin-bottom: 8px;">1. ઉપર Chrome URL ની ડાબી બાજુ આવેલા <b>તાળા (🔒)</b> અથવા <b>Settings</b> આઇકોન પર ક્લિક કરો.</div>
-          <div style="margin-bottom: 8px;">2. <b>Permissions / Site settings</b> માં જઈ <b>Microphone</b> ને <b>Allow</b> કરો.</div>
-          <div>3. નીચે આપેલા <b>"ALLOW MICROPHONE"</b> બટન પર ક્લિક કરો.</div>
-        </div>
-        <button type="button" id="btnRequestMicAgain" style="width: 100%; padding: 14px; background: linear-gradient(135deg, #00e676, #00a152); border: none; border-radius: 8px; color: #000; font-weight: 800; font-size: 1rem; cursor: pointer;">
-          🎙️ ALLOW MICROPHONE & RETRY
-        </button>
-        <button type="button" id="btnCloseMicModal" style="background: transparent; border: none; color: #90a4ae; font-size: 0.85rem; margin-top: 12px; cursor: pointer; text-decoration: underline;">
-          Dismiss
-        </button>
-      </div>
-    </div>
-  </div>
-
-  <!-- 24-Hour Non-Stop Background Setup Modal -->
-  <div class="settings-modal-overlay" id="batteryModal" style="display: none; z-index: 9999;">
-    <div class="settings-modal-card" style="max-width: 420px; text-align: center; border: 2px solid #00e676; box-shadow: 0 0 25px rgba(0,230,118,0.25);">
-      <div class="settings-modal-header" style="justify-content: center; border-bottom: 1px solid rgba(0,230,118,0.3);">
-        <div class="settings-modal-title" style="color: #00e676;">
-          <span class="settings-title-icon">🔋</span>
-          <span>૨૪ કલાક બેકગ્રાઉન્ડ સેટઅપ (24H MODE)</span>
-        </div>
-      </div>
-      <div style="padding: 16px 14px; font-size: 0.88rem; line-height: 1.5; color: #cfd8dc;">
-        <p style="font-weight: 700; color: #fff; margin-bottom: 12px; font-size: 1rem;">
-          સ્ક્રીન બંધ હોય કે તમે PDF / WhatsApp વાપરતા હોવ, તો પણ વોકી-ટોકી ૨૪ કલાક ચાલુ રહે તે માટે આ સેટિંગ કરી લો:
-        </p>
-
-        <!-- Step 1: Notifications -->
-        <div style="margin-bottom: 12px; text-align: left; background: rgba(0,0,0,0.4); padding: 12px; border-radius: 8px; border-left: 4px solid #00e676;">
-          <div style="font-weight: 700; color: #00e676; margin-bottom: 4px;">૧. નોટિફિકેશન મંજૂર કરો (Notification):</div>
-          <div style="color: #b0bec5; font-size: 0.82rem; margin-bottom: 8px;">આનાથી ફોન બેકગ્રાઉન્ડમાં વોકી-ટોકીને ક્યારેય ઊંઘવા (Sleep) નહીં દે.</div>
-          <button type="button" id="btnModalAllowNotif" style="width: 100%; padding: 8px; background: #133a25; border: 1px solid #00e676; color: #00e676; border-radius: 6px; font-weight: 700; font-size: 0.85rem; cursor: pointer;">
-            🔔 NOTIFICATION ALLOW કરો
-          </button>
-        </div>
-
-        <!-- Step 2: Battery Settings -->
-        <div style="margin-bottom: 14px; text-align: left; background: rgba(0,0,0,0.4); padding: 12px; border-radius: 8px; border-left: 4px solid #ffd54f;">
-          <div style="font-weight: 700; color: #ffd54f; margin-bottom: 6px;">૨. બેટરી સેટિંગ (Battery Setting) ⭐ સૌથી મહત્વનું:</div>
-          <div style="font-size: 0.82rem; color: #eceff1; line-height: 1.6;">
-            • ફોનના <b>Settings ➔ Apps</b> માં જાઓ.<br>
-            • <b>Chrome</b> (અથવા <b>SRAT Walkie Talkie</b>) પર ક્લિક કરો.<br>
-            • <b>Battery</b> માં જઈને <b>"Unrestricted"</b> (અથવા <b>"No restrictions"</b> / કોઈ પ્રતિબંધ નહીં) સિલેક્ટ કરી લો.
-          </div>
-        </div>
-
-        <button type="button" id="btnDoneBatteryModal" style="width: 100%; padding: 12px; background: linear-gradient(135deg, #00e676, #00a152); border: none; border-radius: 8px; color: #000; font-weight: 800; font-size: 1rem; cursor: pointer;">
-          ✅ બરાબર, સમજાઈ ગયું (GOT IT)
-        </button>
-      </div>
-    </div>
-  </div>
-
-  <script src="app.js?v=14"></script>
+  <script src="app.js"></script>
 </body>
 </html>
